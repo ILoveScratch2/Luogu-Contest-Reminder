@@ -83,3 +83,13 @@ export const triggerReminder = () => api.post('/admin/remind/trigger')
 export const getSiteConfig = () => api.get('/site-config')
 
 export const saveSiteConfig = (data) => api.put('/admin/site-config', data)
+
+// admin – scheduler
+export const getScheduler = () => api.get('/admin/scheduler')
+
+export const saveScheduler = (data) => api.put('/admin/scheduler', data)
+
+// admin – email templates
+export const getEmailTemplate = (type) => api.get(`/admin/email-templates/${type}`)
+
+export const saveEmailTemplate = (type, data) => api.put(`/admin/email-templates/${type}`, data)

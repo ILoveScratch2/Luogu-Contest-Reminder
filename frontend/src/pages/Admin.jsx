@@ -37,10 +37,14 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import {
   createUser,
   deleteUser,
+  getEmailTemplate,
+  getScheduler,
   getSmtp,
   getSiteConfig,
   getUsers,
   parseApiError,
+  saveEmailTemplate,
+  saveScheduler,
   saveSmtp,
   saveSiteConfig,
   testSmtp,
@@ -384,7 +388,14 @@ function SmtpTab({ t }) {
 // system tab
 function SystemTab({ t }) {
   const [triggering, setTriggering] = useState(false)
+  const [scheduleTimes, setScheduleTimes] = useState(null)
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' })
+
+  useEffect(() => {
+    getScheduler()
+      .then(({ data }) => setScheduleTimes(data.times || []))
+      .catch(() => setScheduleTimes([]))
+  }, [])
 
   const handleTrigger = async () => {
     setTriggering(true)
@@ -414,8 +425,245 @@ function SystemTab({ t }) {
         </CardContent>
       </Card>
 
-      <Alert severity="info">{t('admin.system.scheduleInfo')}</Alert>
+      <Alert severity="info">
+        {scheduleTimes === null ? (
+          t('common.loading')
+        ) : scheduleTimes.length === 0 ? (
+          t('admin.system.scheduleNone')
+        ) : (
+          <>{t('admin.system.scheduleInfo')}{' '}
+            {scheduleTimes.map((time) => (
+              <Chip key={time} label={`${time} CST`} size="small" color="info" sx={{ ml: 0.5 }} />
+            ))}
+          </>
+        )}
+      </Alert>
 
+      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity={snack.sev} variant="filled" onClose={() => setSnack((s) => ({ ...s, open: false }))}>{snack.msg}</Alert>
+      </Snackbar>
+    </>
+  )
+}
+
+// scheduler tab
+function SchedulerTab({ t }) {
+  const [times, setTimes] = useState([])
+  const [newTime, setNewTime] = useState('08:00')
+  const [loaded, setLoaded] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' })
+
+  const showSnack = (msg, sev = 'success') => setSnack({ open: true, msg, sev })
+
+  useEffect(() => {
+    getScheduler()
+      .then(({ data }) => { setTimes(data.times || ['08:00']); setLoaded(true) })
+      .catch(() => setLoaded(true))
+  }, [])
+
+  const addTime = () => {
+    if (!newTime) return
+    if (times.includes(newTime)) { showSnack(t('admin.scheduler.duplicate'), 'warning'); return }
+    setTimes((prev) => [...prev, newTime].sort())
+    setNewTime('08:00')
+  }
+
+  const removeTime = (ti) => setTimes((prev) => prev.filter((x) => x !== ti))
+
+  const handleSave = async () => {
+    if (times.length === 0) { showSnack(t('admin.scheduler.emptyError'), 'error'); return }
+    setSaving(true)
+    try {
+      await saveScheduler({ times })
+      showSnack(t('admin.scheduler.saved'))
+    } catch (err) {
+      showSnack(parseApiError(err) || t('common.error'), 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!loaded) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+
+  return (
+    <>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        {t('admin.scheduler.desc')}
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
+        <TextField
+          label={t('admin.scheduler.addTime')}
+          type="time"
+          value={newTime}
+          onChange={(e) => setNewTime(e.target.value)}
+          sx={{ width: 160 }}
+          fullWidth={false}
+          InputLabelProps={{ shrink: true }}
+        />
+        <Button variant="outlined" startIcon={<AddIcon />} onClick={addTime}>
+          {t('common.add')}
+        </Button>
+      </Box>
+      <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        {times.length === 0 && (
+          <Typography variant="body2" color="text.secondary">{t('admin.scheduler.empty')}</Typography>
+        )}
+        {times.map((time) => (
+          <Chip
+            key={time}
+            label={`${time} CST`}
+            onDelete={() => removeTime(time)}
+            color="primary"
+            variant="outlined"
+          />
+        ))}
+      </Box>
+      <Button variant="contained" onClick={handleSave} disabled={saving}>
+        {saving ? <CircularProgress size={18} /> : t('common.save')}
+      </Button>
+      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity={snack.sev} variant="filled" onClose={() => setSnack((s) => ({ ...s, open: false }))}>{snack.msg}</Alert>
+      </Snackbar>
+    </>
+  )
+}
+
+// email templates tab
+const TEMPLATE_PLACEHOLDERS = {
+  verification: {
+    subject: [],
+    body: ['{{code}}', '{{primary_color}}', '{{dark_color}}', '{{site_title}}'],
+  },
+  reminder: {
+    subject: ['{{count}}'],
+    body: ['{{count}}', '{{cards_html}}', '{{primary_color}}', '{{dark_color}}', '{{site_title}}'],
+  },
+}
+
+function EmailTemplatesTab({ t }) {
+  const [tplType, setTplType] = useState('reminder')
+  const [data, setData] = useState({
+    verification: { subject: '', html_body: '', default_subject: '', default_html: '' },
+    reminder: { subject: '', html_body: '', default_subject: '', default_html: '' },
+  })
+  const [loaded, setLoaded] = useState({ verification: false, reminder: false })
+  const [saving, setSaving] = useState(false)
+  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' })
+
+  const showSnack = (msg, sev = 'success') => setSnack({ open: true, msg, sev })
+
+  useEffect(() => {
+    ;['verification', 'reminder'].forEach((type) => {
+      getEmailTemplate(type)
+        .then(({ data: d }) => {
+          setData((prev) => ({
+            ...prev,
+            [type]: {
+              subject: d.subject || '',
+              html_body: d.html_body || '',
+              default_subject: d.default_subject || '',
+              default_html: d.default_html || '',
+            },
+          }))
+          setLoaded((prev) => ({ ...prev, [type]: true }))
+        })
+        .catch(() => setLoaded((prev) => ({ ...prev, [type]: true })))
+    })
+  }, [])
+
+  const setCurrent = (field) => (e) =>
+    setData((prev) => ({ ...prev, [tplType]: { ...prev[tplType], [field]: e.target.value } }))
+
+  const handleReset = () => {
+    if (!window.confirm(t('admin.emailTemplate.resetConfirm'))) return
+    setData((prev) => ({
+      ...prev,
+      [tplType]: {
+        ...prev[tplType],
+        subject: prev[tplType].default_subject,
+        html_body: prev[tplType].default_html,
+      },
+    }))
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const cur = data[tplType]
+      await saveEmailTemplate(tplType, { subject: cur.subject || null, html_body: cur.html_body || null })
+      showSnack(t('admin.emailTemplate.saved'))
+    } catch (err) {
+      showSnack(parseApiError(err) || t('common.error'), 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const cur = data[tplType]
+  const isLoaded = loaded[tplType]
+  const ph = TEMPLATE_PLACEHOLDERS[tplType]
+
+  return (
+    <>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs value={tplType} onChange={(_, v) => setTplType(v)}>
+          <Tab label={t('admin.emailTemplate.reminder')} value="reminder" />
+          <Tab label={t('admin.emailTemplate.verification')} value="verification" />
+        </Tabs>
+      </Box>
+      {!isLoaded ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Placeholder reference */}
+          <Card variant="outlined">
+            <CardContent sx={{ pb: '12px !important' }}>
+              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                {t('admin.emailTemplate.subjectHint')}
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                {ph.subject.length === 0
+                  ? <Typography variant="caption" color="text.disabled">无</Typography>
+                  : ph.subject.map((p) => <Chip key={p} label={p} size="small" variant="outlined" sx={{ fontFamily: 'monospace', fontSize: 12 }} />)
+                }
+              </Box>
+              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                {t('admin.emailTemplate.bodyHint')}
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {ph.body.map((p) => <Chip key={p} label={p} size="small" variant="outlined" sx={{ fontFamily: 'monospace', fontSize: 12 }} />)}
+              </Box>
+            </CardContent>
+          </Card>
+
+          <TextField
+            label={t('admin.emailTemplate.subject')}
+            value={cur.subject}
+            onChange={setCurrent('subject')}
+            placeholder={cur.default_subject}
+            helperText={t('admin.emailTemplate.emptyFallback')}
+          />
+          <TextField
+            label={t('admin.emailTemplate.htmlBody')}
+            value={cur.html_body}
+            onChange={setCurrent('html_body')}
+            placeholder={cur.default_html}
+            helperText={t('admin.emailTemplate.emptyFallback')}
+            multiline
+            rows={22}
+            InputProps={{ sx: { fontFamily: 'monospace', fontSize: 13 } }}
+          />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="contained" onClick={handleSave} disabled={saving}>
+              {saving ? <CircularProgress size={18} /> : t('admin.emailTemplate.save')}
+            </Button>
+            <Button variant="outlined" onClick={handleReset}>
+              {t('admin.emailTemplate.resetToDefault')}
+            </Button>
+          </Box>
+        </Box>
+      )}
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert severity={snack.sev} variant="filled" onClose={() => setSnack((s) => ({ ...s, open: false }))}>{snack.msg}</Alert>
       </Snackbar>
@@ -529,6 +777,8 @@ export default function Admin() {
             <Tab label={t('admin.tabs.smtp')} />
             <Tab label={t('admin.tabs.system')} />
             <Tab label={t('admin.tabs.site')} />
+            <Tab label={t('admin.tabs.scheduler')} />
+            <Tab label={t('admin.tabs.emailTemplate')} />
           </Tabs>
         </Box>
 
@@ -538,6 +788,8 @@ export default function Admin() {
           {tab === 1 && <SmtpTab t={t} />}
           {tab === 2 && <SystemTab t={t} />}
           {tab === 3 && <SiteConfigTab t={t} />}
+          {tab === 4 && <SchedulerTab t={t} />}
+          {tab === 5 && <EmailTemplatesTab t={t} />}
         </CardContent>
       </Card>
     </Layout>

@@ -4,7 +4,7 @@ import secrets
 import string
 import datetime
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session
 
 from database import (
     SessionLocal,
+    EmailTemplate,
+    SchedulerConfig,
     SentReminder,
     SiteConfig,
     SmtpConfig,
@@ -26,7 +28,7 @@ from database import (
 )
 from email_service import send_contest_reminder, send_verification_email, test_smtp_connection
 from fetch_contest import get_upcoming_contests, fetch_contest_detail
-from scheduler import run_reminder_job, start_scheduler, stop_scheduler
+from scheduler import run_reminder_job, start_scheduler, stop_scheduler, reload_scheduler
 
 # ──────────────────────────────────────────────────────────────
 # Secret key (generated once, persisted to file)
@@ -163,6 +165,15 @@ class SiteConfigRequest(BaseModel):
     site_title: str = "Luogu Contest Reminder"
     primary_color: str = "#1976d2"
     favicon_url: str = ""
+
+
+class SchedulerConfigRequest(BaseModel):
+    times: List[str]
+
+
+class EmailTemplateRequest(BaseModel):
+    subject: Optional[str] = None
+    html_body: Optional[str] = None
 
 
 # Auth routes
@@ -436,6 +447,91 @@ def test_smtp(root: User = Depends(require_root), db: Session = Depends(get_db))
 def trigger_reminder(root: User = Depends(require_root)):
     run_reminder_job()
     return {"message": "Reminder job triggered"}
+
+
+# admin – scheduler config
+@app.get("/api/admin/scheduler")
+def get_scheduler_config(root: User = Depends(require_root), db: Session = Depends(get_db)):
+    import json
+    cfg = db.query(SchedulerConfig).first()
+    if not cfg:
+        return {"times": ["08:00"]}
+    return {"times": json.loads(cfg.times_json)}
+
+
+@app.put("/api/admin/scheduler")
+def update_scheduler_config(
+    req: SchedulerConfigRequest,
+    root: User = Depends(require_root),
+    db: Session = Depends(get_db),
+):
+    import json, re
+    if not req.times:
+        raise HTTPException(status_code=400, detail="At least one time is required")
+    for t in req.times:
+        if not re.match(r'^([01]\d|2[0-3]):[0-5]\d$', t):
+            raise HTTPException(status_code=400, detail=f"Invalid time format: {t}, expected HH:MM")
+    times_json = json.dumps(sorted(set(req.times)))
+    cfg = db.query(SchedulerConfig).first()
+    if cfg:
+        cfg.times_json = times_json
+        cfg.updated_at = datetime.datetime.utcnow()
+    else:
+        cfg = SchedulerConfig(times_json=times_json)
+        db.add(cfg)
+    db.commit()
+    reload_scheduler()
+    return {"message": "Scheduler config saved", "times": json.loads(times_json)}
+
+
+# admin – email templates
+@app.get("/api/admin/email-templates/{tpl_type}")
+def get_email_template(
+    tpl_type: str,
+    root: User = Depends(require_root),
+    db: Session = Depends(get_db),
+):
+    from email_service import (
+        DEFAULT_VERIFICATION_HTML, DEFAULT_VERIFICATION_SUBJECT,
+        DEFAULT_REMINDER_HTML, DEFAULT_REMINDER_SUBJECT,
+    )
+    if tpl_type not in ("verification", "reminder"):
+        raise HTTPException(status_code=400, detail="Unknown template type")
+    row = db.query(EmailTemplate).filter(EmailTemplate.type == tpl_type).first()
+    default_html = DEFAULT_VERIFICATION_HTML if tpl_type == "verification" else DEFAULT_REMINDER_HTML
+    default_subject = DEFAULT_VERIFICATION_SUBJECT if tpl_type == "verification" else DEFAULT_REMINDER_SUBJECT
+    return {
+        "type": tpl_type,
+        "subject": row.subject if row else None,
+        "html_body": row.html_body if row else None,
+        "default_html": default_html,
+        "default_subject": default_subject,
+    }
+
+
+@app.put("/api/admin/email-templates/{tpl_type}")
+def update_email_template(
+    tpl_type: str,
+    req: EmailTemplateRequest,
+    root: User = Depends(require_root),
+    db: Session = Depends(get_db),
+):
+    if tpl_type not in ("verification", "reminder"):
+        raise HTTPException(status_code=400, detail="Unknown template type")
+    row = db.query(EmailTemplate).filter(EmailTemplate.type == tpl_type).first()
+    if row:
+        row.subject = req.subject or None
+        row.html_body = req.html_body or None
+        row.updated_at = datetime.datetime.utcnow()
+    else:
+        row = EmailTemplate(
+            type=tpl_type,
+            subject=req.subject or None,
+            html_body=req.html_body or None,
+        )
+        db.add(row)
+    db.commit()
+    return {"message": "Email template saved"}
 
 
 # public – site config

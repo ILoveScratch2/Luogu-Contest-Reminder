@@ -63,7 +63,9 @@
       "users": "用户管理",
       "smtp": "SMTP 配置",
       "system": "系统操作",
-      "site": "站点设置"
+      "site": "站点设置",
+      "scheduler": "调度配置",
+      "emailTemplate": "邮件模板"
     },
     "users": {
       "id": "ID",
@@ -111,7 +113,8 @@
       "triggerDesc": "手动触发一次比赛提醒，会向所有启用提醒的用户发送未来 24 小时内的比赛通知（已发送过的比赛不会重复发送）。",
       "trigger": "立即发送",
       "triggered": "提醒已触发",
-      "scheduleInfo": "定时提醒每日 08:00 CST 自动运行。"
+      "scheduleInfo": "定时提醒每日在以下时间自动运行（CST）：",
+      "scheduleNone": "暂无设置，请到调度配置页设置"
     },
     "site": {
       "siteTitle": "站点标题",
@@ -123,6 +126,28 @@
       "save": "保存设置",
       "saved": "站点设置已保存",
       "preview": "颜色预览"
+    },
+    "scheduler": {
+      "desc": "设置每天自动发送提醒的时间（CST，24小时制）。每次执行不会重复发送已提醒过的比赛。",
+      "addTime": "添加时间",
+      "empty": "暂无调度时间，至少需要设置一个",
+      "emptyError": "至少需要设置一个调度时间",
+      "duplicate": "该时间已存在",
+      "saved": "调度配置已保存"
+    },
+    "emailTemplate": {
+      "reminder": "比赛提醒",
+      "verification": "邮箱验证",
+      "subject": "邮件主题",
+      "htmlBody": "HTML 正文",
+      "save": "保存模板",
+      "saved": "邮件模板已保存",
+      "resetToDefault": "重置为默认",
+      "resetConfirm": "确定要覆盖为默认模板内容吗？",
+      "placeholders": "可用占位符",
+      "subjectHint": "主题可用：",
+      "bodyHint": "HTML 正文可用：",
+      "emptyFallback": "留空则使用系统默认"
     }
   },
   "common": {
@@ -130,6 +155,7 @@
     "cancel": "取消",
     "delete": "删除",
     "edit": "编辑",
+    "add": "添加",
     "close": "关闭",
     "loading": "加载中…",
     "error": "出错了",

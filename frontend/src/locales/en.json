@@ -63,7 +63,9 @@
       "users": "Users",
       "smtp": "SMTP Config",
       "system": "System",
-      "site": "Site Settings"
+      "site": "Site Settings",
+      "scheduler": "Schedule",
+      "emailTemplate": "Email Templates"
     },
     "users": {
       "id": "ID",
@@ -111,7 +113,8 @@
       "triggerDesc": "Manually trigger the reminder job. Emails will be sent to all users with reminders enabled for contests starting in the next 24 hours (already-sent contests are skipped).",
       "trigger": "Send Now",
       "triggered": "Reminder triggered",
-      "scheduleInfo": "Scheduled reminders run automatically daily at 08:00 CST."
+      "scheduleInfo": "Scheduled reminders run automatically each day at (CST):",
+      "scheduleNone": "No schedule configured. Go to the Schedule tab to set up times."
     },
     "site": {
       "siteTitle": "Site Title",
@@ -123,6 +126,28 @@
       "save": "Save Settings",
       "saved": "Site settings saved",
       "preview": "Color Preview"
+    },
+    "scheduler": {
+      "desc": "Set the times to automatically send daily reminders (CST, 24-hour). Each run skips contests already reminded.",
+      "addTime": "Add Time",
+      "empty": "No scheduled times. At least one is required.",
+      "emptyError": "At least one scheduled time is required",
+      "duplicate": "This time already exists",
+      "saved": "Schedule saved"
+    },
+    "emailTemplate": {
+      "reminder": "Contest Reminder",
+      "verification": "Email Verification",
+      "subject": "Email Subject",
+      "htmlBody": "HTML Body",
+      "save": "Save Template",
+      "saved": "Email template saved",
+      "resetToDefault": "Reset to Default",
+      "resetConfirm": "Overwrite with the default template content?",
+      "placeholders": "Available Placeholders",
+      "subjectHint": "Subject placeholders:",
+      "bodyHint": "HTML body placeholders:",
+      "emptyFallback": "Leave blank to use system default"
     }
   },
   "common": {
@@ -130,6 +155,7 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
+    "add": "Add",
     "close": "Close",
     "loading": "Loading…",
     "error": "Something went wrong",

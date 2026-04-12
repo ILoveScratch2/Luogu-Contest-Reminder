@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./lgcontest.db"
@@ -62,6 +62,22 @@ class SiteConfig(Base):
     site_title = Column(String, default="Luogu Contest Reminder", nullable=False)
     primary_color = Column(String, default="#1976d2", nullable=False)
     favicon_url = Column(String, default="", nullable=False)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class SchedulerConfig(Base):
+    __tablename__ = "scheduler_config"
+    id = Column(Integer, primary_key=True, index=True)
+    times_json = Column(String, default='["08:00"]', nullable=False)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class EmailTemplate(Base):
+    __tablename__ = "email_templates"
+    id = Column(Integer, primary_key=True, index=True)
+    type = Column(String, unique=True, nullable=False, index=True)  # 'verification' | 'reminder'
+    subject = Column(Text, nullable=True)
+    html_body = Column(Text, nullable=True)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
