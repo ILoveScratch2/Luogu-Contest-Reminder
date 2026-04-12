@@ -62,7 +62,8 @@
     "tabs": {
       "users": "用户管理",
       "smtp": "SMTP 配置",
-      "system": "系统操作"
+      "system": "系统操作",
+      "site": "站点设置"
     },
     "users": {
       "id": "ID",
@@ -73,8 +74,8 @@
       "role": "角色",
       "createdAt": "注册时间",
       "actions": "操作",
-      "active": "活跃",
-      "inactive": "已停用",
+      "active": "启用",
+      "inactive": "停用",
       "on": "开",
       "off": "关",
       "root": "管理员",
@@ -111,6 +112,17 @@
       "trigger": "立即发送",
       "triggered": "提醒已触发",
       "scheduleInfo": "定时提醒每日 08:00 CST 自动运行。"
+    },
+    "site": {
+      "siteTitle": "站点标题",
+      "siteTitleHelp": "显示在页面标题和导航栏中，默认为 Luogu Contest Reminder",
+      "primaryColor": "主题色",
+      "primaryColorHelp": "十六进制颜色值，如 #1976d2",
+      "faviconUrl": "Favicon URL",
+      "faviconUrlHelp": "页面图标地址（留空使用默认）",
+      "save": "保存设置",
+      "saved": "站点设置已保存",
+      "preview": "颜色预览"
     }
   },
   "common": {

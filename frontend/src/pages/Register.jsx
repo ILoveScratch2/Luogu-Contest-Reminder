@@ -18,6 +18,7 @@ import Visibility from '@mui/icons-material/Visibility'
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
 import { sendCode, register as registerApi, parseApiError } from '../api/index.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { useSiteConfig } from '../contexts/SiteConfigContext.jsx'
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
 import Footer from '../components/Footer.jsx'
 
@@ -25,6 +26,7 @@ export default function Register() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { login } = useAuth()
+  const { config } = useSiteConfig()
 
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -105,13 +107,13 @@ export default function Register() {
       <Card sx={{ width: '100%', maxWidth: 440 }}>
         <Box
           sx={{
-            background: 'linear-gradient(135deg, #1565c0, #1976d2)',
+            background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
             p: 4,
             textAlign: 'center',
             color: '#fff',
           }}
         >
-          <Typography variant="h5">{t('app.title')}</Typography>
+          <Typography variant="h5">{config.site_title || t('app.title')}</Typography>
         </Box>
 
         <CardContent sx={{ p: 3 }}>

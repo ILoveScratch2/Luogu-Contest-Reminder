@@ -38,14 +38,17 @@ import {
   createUser,
   deleteUser,
   getSmtp,
+  getSiteConfig,
   getUsers,
   parseApiError,
   saveSmtp,
+  saveSiteConfig,
   testSmtp,
   triggerReminder,
   updateUser,
 } from '../api/index.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { useSiteConfig } from '../contexts/SiteConfigContext.jsx'
 import Layout from '../components/Layout.jsx'
 
 // util
@@ -420,6 +423,94 @@ function SystemTab({ t }) {
   )
 }
 
+// site config tab
+function SiteConfigTab({ t }) {
+  const { config: globalConfig, setConfig: setGlobalConfig } = useSiteConfig()
+  const [form, setForm] = useState({
+    site_title: '',
+    primary_color: '#1976d2',
+    favicon_url: '',
+  })
+  const [loaded, setLoaded] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' })
+
+  const showSnack = (msg, sev = 'success') => setSnack({ open: true, msg, sev })
+
+  useEffect(() => {
+    getSiteConfig()
+      .then(({ data }) => {
+        if (data) setForm({ site_title: data.site_title || '', primary_color: data.primary_color || '#1976d2', favicon_url: data.favicon_url || '' })
+        setLoaded(true)
+      })
+      .catch(() => setLoaded(true))
+  }, [])
+
+  const isValidColor = (c) => /^#[0-9A-Fa-f]{6}$/.test(c)
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+
+  const handleSave = async () => {
+    if (!isValidColor(form.primary_color)) {
+      showSnack(t('admin.site.primaryColorHelp'), 'error')
+      return
+    }
+    setSaving(true)
+    try {
+      await saveSiteConfig(form)
+      setGlobalConfig((prev) => ({ ...prev, ...form }))
+      showSnack(t('admin.site.saved'))
+    } catch (err) {
+      showSnack(parseApiError(err) || t('common.error'), 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!loaded) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+
+  return (
+    <>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 480 }}>
+        <TextField
+          label={t('admin.site.siteTitle')}
+          value={form.site_title}
+          onChange={set('site_title')}
+          helperText={t('admin.site.siteTitleHelp')}
+        />
+        <Box>
+          <TextField
+            label={t('admin.site.primaryColor')}
+            value={form.primary_color}
+            onChange={set('primary_color')}
+            helperText={t('admin.site.primaryColorHelp')}
+            error={!!form.primary_color && !isValidColor(form.primary_color)}
+            InputProps={{
+              endAdornment: isValidColor(form.primary_color) ? (
+                <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: form.primary_color, border: '1px solid rgba(0,0,0,0.2)', flexShrink: 0 }} />
+            ) : null,
+            }}
+          />
+        </Box>
+        <TextField
+          label={t('admin.site.faviconUrl')}
+          value={form.favicon_url}
+          onChange={set('favicon_url')}
+          helperText={t('admin.site.faviconUrlHelp')}
+        />
+        <Box>
+          <Button variant="contained" onClick={handleSave} disabled={saving}>
+            {saving ? <CircularProgress size={18} /> : t('admin.site.save')}
+          </Button>
+        </Box>
+      </Box>
+
+      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity={snack.sev} variant="filled" onClose={() => setSnack((s) => ({ ...s, open: false }))}>{snack.msg}</Alert>
+      </Snackbar>
+    </>
+  )
+}
+
 // admin page
 export default function Admin() {
   const { t } = useTranslation()
@@ -437,6 +528,7 @@ export default function Admin() {
             <Tab label={t('admin.tabs.users')} />
             <Tab label={t('admin.tabs.smtp')} />
             <Tab label={t('admin.tabs.system')} />
+            <Tab label={t('admin.tabs.site')} />
           </Tabs>
         </Box>
 
@@ -445,6 +537,7 @@ export default function Admin() {
           {tab === 0 && <UsersTab t={t} />}
           {tab === 1 && <SmtpTab t={t} />}
           {tab === 2 && <SystemTab t={t} />}
+          {tab === 3 && <SiteConfigTab t={t} />}
         </CardContent>
       </Card>
     </Layout>

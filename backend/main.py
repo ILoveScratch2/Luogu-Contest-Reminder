@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from database import (
     SessionLocal,
     SentReminder,
+    SiteConfig,
     SmtpConfig,
     User,
     VerificationCode,
@@ -156,6 +157,12 @@ class SmtpConfigRequest(BaseModel):
     from_email: EmailStr
     from_name: str = "Luogu Contest Reminder"
     use_tls: bool = True
+
+
+class SiteConfigRequest(BaseModel):
+    site_title: str = "Luogu Contest Reminder"
+    primary_color: str = "#1976d2"
+    favicon_url: str = ""
 
 
 # Auth routes
@@ -429,6 +436,41 @@ def test_smtp(root: User = Depends(require_root), db: Session = Depends(get_db))
 def trigger_reminder(root: User = Depends(require_root)):
     run_reminder_job()
     return {"message": "Reminder job triggered"}
+
+
+# public – site config
+@app.get("/api/site-config")
+def get_site_config(db: Session = Depends(get_db)):
+    cfg = db.query(SiteConfig).first()
+    if not cfg:
+        return {"site_title": "Luogu Contest Reminder", "primary_color": "#1976d2", "favicon_url": ""}
+    return {"site_title": cfg.site_title, "primary_color": cfg.primary_color, "favicon_url": cfg.favicon_url}
+
+
+@app.put("/api/admin/site-config")
+def update_site_config(
+    req: SiteConfigRequest,
+    root: User = Depends(require_root),
+    db: Session = Depends(get_db),
+):
+    import re
+    if not re.match(r'^#[0-9A-Fa-f]{6}$', req.primary_color):
+        raise HTTPException(status_code=400, detail="Invalid color format, expected #rrggbb")
+    cfg = db.query(SiteConfig).first()
+    if cfg:
+        cfg.site_title = req.site_title
+        cfg.primary_color = req.primary_color
+        cfg.favicon_url = req.favicon_url
+        cfg.updated_at = datetime.datetime.utcnow()
+    else:
+        cfg = SiteConfig(
+            site_title=req.site_title,
+            primary_color=req.primary_color,
+            favicon_url=req.favicon_url,
+        )
+        db.add(cfg)
+    db.commit()
+    return {"message": "Site config saved"}
 
 
 # public info

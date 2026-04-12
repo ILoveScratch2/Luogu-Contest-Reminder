@@ -17,12 +17,14 @@ import DashboardIcon from '@mui/icons-material/Dashboard'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { useSiteConfig } from '../contexts/SiteConfigContext.jsx'
 import LanguageSwitcher from './LanguageSwitcher.jsx'
 import Footer from './Footer.jsx'
 
 export default function Layout({ children, maxWidth = 'lg' }) {
   const { t } = useTranslation()
   const { user, logout } = useAuth()
+  const { config } = useSiteConfig()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -40,7 +42,7 @@ export default function Layout({ children, maxWidth = 'lg' }) {
             onClick={() => navigate('/dashboard')}
             sx={{ cursor: 'pointer', color: 'inherit', flexGrow: 0, mr: 2, fontWeight: 700 }}
           >
-            {t('app.title')}
+            {config.site_title || t('app.title')}
           </Typography>
 
           <Box sx={{ flexGrow: 1 }} />

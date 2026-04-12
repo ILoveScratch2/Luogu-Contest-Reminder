@@ -62,7 +62,8 @@
     "tabs": {
       "users": "Users",
       "smtp": "SMTP Config",
-      "system": "System"
+      "system": "System",
+      "site": "Site Settings"
     },
     "users": {
       "id": "ID",
@@ -111,6 +112,17 @@
       "trigger": "Send Now",
       "triggered": "Reminder triggered",
       "scheduleInfo": "Scheduled reminders run automatically daily at 08:00 CST."
+    },
+    "site": {
+      "siteTitle": "Site Title",
+      "siteTitleHelp": "Displayed in the page title and navbar. Default: Luogu Contest Reminder",
+      "primaryColor": "Primary Color",
+      "primaryColorHelp": "Hex color value, e.g. #1976d2",
+      "faviconUrl": "Favicon URL",
+      "faviconUrlHelp": "URL for the page icon (leave blank to use default)",
+      "save": "Save Settings",
+      "saved": "Site settings saved",
+      "preview": "Color Preview"
     }
   },
   "common": {

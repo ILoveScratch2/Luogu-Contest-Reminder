@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { AuthProvider } from './contexts/AuthContext.jsx'
-import theme from './theme.js'
+import { SiteConfigProvider, useSiteConfig } from './contexts/SiteConfigContext.jsx'
+import createAppTheme from './theme.js'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import Dashboard from './pages/Dashboard.jsx'
@@ -38,11 +39,13 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-export default function App() {
+function ThemedRoot() {
+  const { config } = useSiteConfig()
+  const theme = useMemo(() => createAppTheme(config.primary_color), [config.primary_color])
+
   return (
-    <ErrorBoundary>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
       <AuthProvider>
         <BrowserRouter>
           <Routes>
@@ -70,6 +73,15 @@ export default function App() {
         </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
+  )
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <SiteConfigProvider>
+        <ThemedRoot />
+      </SiteConfigProvider>
     </ErrorBoundary>
   )
 }

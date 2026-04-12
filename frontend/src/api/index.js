@@ -78,3 +78,8 @@ export const testSmtp = () => api.post('/admin/smtp/test')
 
 // admin – remind
 export const triggerReminder = () => api.post('/admin/remind/trigger')
+
+// admin – site config
+export const getSiteConfig = () => api.get('/site-config')
+
+export const saveSiteConfig = (data) => api.put('/admin/site-config', data)

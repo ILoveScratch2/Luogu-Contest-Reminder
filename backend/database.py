@@ -56,6 +56,15 @@ class SentReminder(Base):
     sent_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
+class SiteConfig(Base):
+    __tablename__ = "site_config"
+    id = Column(Integer, primary_key=True, index=True)
+    site_title = Column(String, default="Luogu Contest Reminder", nullable=False)
+    primary_color = Column(String, default="#1976d2", nullable=False)
+    favicon_url = Column(String, default="", nullable=False)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
 def get_db():
     db = SessionLocal()
     try:
