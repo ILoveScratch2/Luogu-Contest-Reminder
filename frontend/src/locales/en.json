@@ -1,0 +1,125 @@
+{
+  "app": {
+    "title": "Luogu Contest Reminder"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "admin": "Admin Panel",
+    "logout": "Logout"
+  },
+  "lang": {
+    "zh": "简体中文",
+    "en": "English"
+  },
+  "auth": {
+    "login": "Log In",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "verificationCode": "Verification Code",
+    "sendCode": "Send Code",
+    "resendCode": "Resend",
+    "sending": "Sending…",
+    "loggingIn": "Logging in…",
+    "registering": "Registering…",
+    "noAccount": "No account? Register now",
+    "hasAccount": "Have an account? Log in",
+    "loginSuccess": "Logged in successfully",
+    "registerSuccess": "Registered successfully, welcome!",
+    "codeSent": "Verification code sent, please check your email",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordMismatch": "Passwords do not match",
+    "invalidCredentials": "Invalid email or password",
+    "invalidCode": "Invalid or expired verification code",
+    "emailRegistered": "Email already registered"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome, {{email}}",
+    "settings": "Reminder Settings",
+    "emailReminder": "Email Reminders",
+    "emailReminderDesc": "Receive email notifications 24 hours before a contest starts",
+    "sendContestBody": "Include Contest Description",
+    "sendContestBodyDesc": "Attach contest description in reminder emails (collapsed by default)",
+    "upcomingContests": "Upcoming Contests (next 24 hours)",
+    "contestName": "Contest Name",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "noContests": "No contests starting in the next 24 hours",
+    "loadingContests": "Loading contests…",
+    "settingsSaved": "Settings saved",
+    "account": "Account",
+    "deleteAccount": "Delete Account",
+    "deleteAccountConfirm": "Are you sure you want to permanently delete your account? This action is irreversible.",
+    "accountDeleted": "Account deleted",
+    "goContest": "View Contest",
+    "nextReminder": "Daily reminders are sent at 08:00 CST (server time)"
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "tabs": {
+      "users": "Users",
+      "smtp": "SMTP Config",
+      "system": "System"
+    },
+    "users": {
+      "id": "ID",
+      "email": "Email",
+      "status": "Status",
+      "reminder": "Reminder",
+      "body": "Body",
+      "role": "Role",
+      "createdAt": "Registered",
+      "actions": "Actions",
+      "active": "Active",
+      "inactive": "Disabled",
+      "on": "On",
+      "off": "Off",
+      "root": "Admin",
+      "normal": "User",
+      "editTitle": "Edit User",
+      "newPassword": "New Password (leave blank to keep)",
+      "deleteConfirm": "Delete user {{email}}?",
+      "updated": "User updated",
+      "deleted": "User deleted"
+    },
+    "smtp": {
+      "host": "SMTP Host",
+      "port": "Port",
+      "username": "Username",
+      "password": "Password",
+      "passwordHelp": "Leave blank to keep existing password",
+      "fromEmail": "From Email",
+      "fromName": "From Name",
+      "useTls": "Use TLS (STARTTLS)",
+      "save": "Save Config",
+      "test": "Test Connection",
+      "testSuccess": "✅ Connection successful",
+      "testFailed": "❌ Connection failed",
+      "saved": "SMTP config saved",
+      "notConfigured": "SMTP is not configured. Users cannot register until SMTP is set up."
+    },
+    "system": {
+      "triggerTitle": "Send Reminders Now",
+      "triggerDesc": "Manually trigger the reminder job. Emails will be sent to all users with reminders enabled for contests starting in the next 24 hours (already-sent contests are skipped).",
+      "trigger": "Send Now",
+      "triggered": "Reminder triggered",
+      "scheduleInfo": "Scheduled reminders run automatically daily at 08:00 CST."
+    }
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "success": "Success",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "back": "Back"
+  }
+}

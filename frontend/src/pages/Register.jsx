@@ -1,0 +1,209 @@
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Divider,
+  IconButton,
+  InputAdornment,
+  Link,
+  TextField,
+  Typography,
+} from '@mui/material'
+import Visibility from '@mui/icons-material/Visibility'
+import VisibilityOff from '@mui/icons-material/VisibilityOff'
+import { sendCode, register as registerApi } from '../api/index.js'
+import { useAuth } from '../contexts/AuthContext.jsx'
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
+
+export default function Register() {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const { login } = useAuth()
+
+  const [email, setEmail] = useState('')
+  const [code, setCode] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [showPwd, setShowPwd] = useState(false)
+
+  const [codeSent, setCodeSent] = useState(false)
+  const [codeCooldown, setCodeCooldown] = useState(0)
+  const [sendingCode, setSendingCode] = useState(false)
+  const [registering, setRegistering] = useState(false)
+
+  const [info, setInfo] = useState('')
+  const [error, setError] = useState('')
+
+  // cooldown timer for resend code button
+  const startCooldown = () => {
+    setCodeCooldown(60)
+    const iv = setInterval(() => {
+      setCodeCooldown((prev) => {
+        if (prev <= 1) { clearInterval(iv); return 0 }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  const handleSendCode = async () => {
+    setError('')
+    setInfo('')
+    if (!email) { setError(t('auth.email')); return }
+    setSendingCode(true)
+    try {
+      await sendCode(email)
+      setCodeSent(true)
+      setInfo(t('auth.codeSent'))
+      startCooldown()
+    } catch (err) {
+      setError(err.response?.data?.detail || t('common.error'))
+    } finally {
+      setSendingCode(false)
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setInfo('')
+    if (password.length < 8) { setError(t('auth.passwordTooShort')); return }
+    if (password !== confirm) { setError(t('auth.passwordMismatch')); return }
+    setRegistering(true)
+    try {
+      const { data } = await registerApi({ email, code, password })
+      login(data.token, data.user)
+      navigate('/dashboard', { replace: true })
+    } catch (err) {
+      setError(err.response?.data?.detail || t('common.error'))
+    } finally {
+      setRegistering(false)
+    }
+  }
+
+  return (
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: 'background.default',
+        p: 2,
+      }}
+    >
+      <Box sx={{ position: 'fixed', top: 16, right: 16 }}>
+        <LanguageSwitcher />
+      </Box>
+
+      <Card sx={{ width: '100%', maxWidth: 440 }}>
+        <Box
+          sx={{
+            background: 'linear-gradient(135deg, #1565c0, #1976d2)',
+            p: 4,
+            textAlign: 'center',
+            color: '#fff',
+          }}
+        >
+          <Typography variant="h5">{t('app.title')}</Typography>
+        </Box>
+
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            {t('auth.register')}
+          </Typography>
+
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {info && <Alert severity="success" sx={{ mb: 2 }}>{info}</Alert>}
+
+          <Box component="form" onSubmit={handleSubmit} noValidate>
+            {/* email + send code */}
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <TextField
+                label={t('auth.email')}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+                sx={{ flex: 1 }}
+              />
+              <Button
+                variant="outlined"
+                onClick={handleSendCode}
+                disabled={sendingCode || codeCooldown > 0}
+                sx={{ whiteSpace: 'nowrap', minWidth: 110 }}
+              >
+                {sendingCode
+                  ? t('auth.sending')
+                  : codeCooldown > 0
+                  ? `${codeCooldown}s`
+                  : codeSent
+                  ? t('auth.resendCode')
+                  : t('auth.sendCode')}
+              </Button>
+            </Box>
+
+            <TextField
+              label={t('auth.verificationCode')}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              required
+              inputProps={{ maxLength: 6, pattern: '[0-9]*' }}
+              sx={{ mb: 2 }}
+            />
+
+            <TextField
+              label={t('auth.password')}
+              type={showPwd ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              sx={{ mb: 2 }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPwd((v) => !v)} edge="end">
+                      {showPwd ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            <TextField
+              label={t('auth.confirmPassword')}
+              type={showPwd ? 'text' : 'password'}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              required
+              sx={{ mb: 3 }}
+            />
+
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              size="large"
+              disabled={registering || !codeSent}
+            >
+              {registering ? t('auth.registering') : t('auth.register')}
+            </Button>
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="body2" textAlign="center">
+            <Link component={RouterLink} to="/login" underline="hover">
+              {t('auth.hasAccount')}
+            </Link>
+          </Typography>
+        </CardContent>
+      </Card>
+    </Box>
+  )
+}

@@ -1,0 +1,38 @@
+# ── Backend ───────────────────────────────────────────────────
+backend/lgcontest.db
+backend/secret.key
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/.env
+
+# ── Frontend ──────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# ── Python (general) ─────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# ── OS ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor ────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user

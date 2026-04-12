@@ -1,0 +1,125 @@
+{
+  "app": {
+    "title": "Luogu Contest Reminder"
+  },
+  "nav": {
+    "dashboard": "控制台",
+    "admin": "管理面板",
+    "logout": "退出登录"
+  },
+  "lang": {
+    "zh": "简体中文",
+    "en": "English"
+  },
+  "auth": {
+    "login": "登录",
+    "register": "注册",
+    "email": "邮箱",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "verificationCode": "验证码",
+    "sendCode": "发送验证码",
+    "resendCode": "重新发送",
+    "sending": "发送中…",
+    "loggingIn": "登录中…",
+    "registering": "注册中…",
+    "noAccount": "没有账号？立即注册",
+    "hasAccount": "已有账号？立即登录",
+    "loginSuccess": "登录成功",
+    "registerSuccess": "注册成功，欢迎！",
+    "codeSent": "验证码已发送，请查收邮件",
+    "passwordTooShort": "密码至少需要 8 位",
+    "passwordMismatch": "两次密码输入不一致",
+    "invalidCredentials": "邮箱或密码错误",
+    "invalidCode": "验证码无效或已过期",
+    "emailRegistered": "该邮箱已被注册"
+  },
+  "dashboard": {
+    "title": "控制台",
+    "welcome": "欢迎，{{email}}",
+    "settings": "提醒设置",
+    "emailReminder": "邮件提醒",
+    "emailReminderDesc": "在比赛开始前 24 小时收到邮件通知",
+    "sendContestBody": "包含比赛简介",
+    "sendContestBodyDesc": "在提醒邮件中附上比赛描述（邮件内默认折叠）",
+    "upcomingContests": "即将开始的比赛（未来 24 小时）",
+    "contestName": "比赛名称",
+    "startTime": "开始时间",
+    "endTime": "结束时间",
+    "noContests": "未来 24 小时内暂无比赛",
+    "loadingContests": "正在加载比赛…",
+    "settingsSaved": "设置已保存",
+    "account": "账号管理",
+    "deleteAccount": "注销账号",
+    "deleteAccountConfirm": "确定要永久注销账号吗？此操作不可撤销。",
+    "accountDeleted": "账号已注销",
+    "goContest": "查看比赛",
+    "nextReminder": "每日 08:00 CST 发送提醒（服务器时间）"
+  },
+  "admin": {
+    "title": "管理面板",
+    "tabs": {
+      "users": "用户管理",
+      "smtp": "SMTP 配置",
+      "system": "系统操作"
+    },
+    "users": {
+      "id": "ID",
+      "email": "邮箱",
+      "status": "状态",
+      "reminder": "邮件提醒",
+      "body": "含简介",
+      "role": "角色",
+      "createdAt": "注册时间",
+      "actions": "操作",
+      "active": "活跃",
+      "inactive": "已停用",
+      "on": "开",
+      "off": "关",
+      "root": "管理员",
+      "normal": "普通用户",
+      "editTitle": "编辑用户",
+      "newPassword": "新密码（留空不修改）",
+      "deleteConfirm": "确定要删除用户 {{email}} 吗？",
+      "updated": "用户已更新",
+      "deleted": "用户已删除"
+    },
+    "smtp": {
+      "host": "SMTP 服务器",
+      "port": "端口",
+      "username": "用户名",
+      "password": "密码",
+      "passwordHelp": "留空则保持现有密码不变",
+      "fromEmail": "发件人邮箱",
+      "fromName": "发件人名称",
+      "useTls": "使用 TLS（STARTTLS）",
+      "save": "保存配置",
+      "test": "测试连接",
+      "testSuccess": "✅ 连接测试成功",
+      "testFailed": "❌ 连接测试失败",
+      "saved": "SMTP 配置已保存",
+      "notConfigured": "SMTP 尚未配置，用户注册需要先配置 SMTP"
+    },
+    "system": {
+      "triggerTitle": "立即发送提醒",
+      "triggerDesc": "手动触发一次比赛提醒，会向所有启用提醒的用户发送未来 24 小时内的比赛通知（已发送过的比赛不会重复发送）。",
+      "trigger": "立即发送",
+      "triggered": "提醒已触发",
+      "scheduleInfo": "定时提醒每日 08:00 CST 自动运行。"
+    }
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "close": "关闭",
+    "loading": "加载中…",
+    "error": "出错了",
+    "success": "操作成功",
+    "confirm": "确认",
+    "yes": "是",
+    "no": "否",
+    "back": "返回"
+  }
+}
