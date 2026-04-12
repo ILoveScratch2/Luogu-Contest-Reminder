@@ -28,7 +28,7 @@ import {
   Typography,
 } from '@mui/material'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
-import { deleteAccount, getProfile, getUpcomingContests, updateSettings } from '../api/index.js'
+import { deleteAccount, getProfile, getUpcomingContests, updateSettings, parseApiError } from '../api/index.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Layout from '../components/Layout.jsx'
 
@@ -103,7 +103,7 @@ export default function Dashboard() {
       logout()
       navigate('/login', { replace: true })
     } catch (err) {
-      showSnack(err.response?.data?.detail || t('common.error'), 'error')
+      showSnack(parseApiError(err) || t('common.error'), 'error')
       setDeleting(false)
       setDeleteOpen(false)
     }

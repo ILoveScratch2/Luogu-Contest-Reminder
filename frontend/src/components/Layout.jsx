@@ -14,9 +14,11 @@ import {
 } from '@mui/material'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import DashboardIcon from '@mui/icons-material/Dashboard'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import LanguageSwitcher from './LanguageSwitcher.jsx'
+import Footer from './Footer.jsx'
 
 export default function Layout({ children, maxWidth = 'lg' }) {
   const { t } = useTranslation()
@@ -64,6 +66,15 @@ export default function Layout({ children, maxWidth = 'lg' }) {
             </Button>
           )}
 
+          <Button
+            color="inherit"
+            startIcon={<InfoOutlinedIcon />}
+            onClick={() => navigate('/about')}
+            sx={{ mr: 1 }}
+          >
+            {t('nav.about')}
+          </Button>
+
           <LanguageSwitcher sx={{ mr: 1, color: 'inherit' }} />
 
           <Tooltip title={user?.email || ''}>
@@ -83,6 +94,7 @@ export default function Layout({ children, maxWidth = 'lg' }) {
       <Container maxWidth={maxWidth} sx={{ py: 4 }}>
         {children}
       </Container>
+      <Footer />
     </Box>
   )
 }

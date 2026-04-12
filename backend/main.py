@@ -30,6 +30,7 @@ from scheduler import run_reminder_job, start_scheduler, stop_scheduler
 # ──────────────────────────────────────────────────────────────
 # Secret key (generated once, persisted to file)
 # ──────────────────────────────────────────────────────────────
+APP_VERSION = "1.0.0"
 _KEY_FILE = "secret.key"
 if os.path.exists(_KEY_FILE):
     with open(_KEY_FILE, "r") as _f:
@@ -428,6 +429,24 @@ def test_smtp(root: User = Depends(require_root), db: Session = Depends(get_db))
 def trigger_reminder(root: User = Depends(require_root)):
     run_reminder_job()
     return {"message": "Reminder job triggered"}
+
+
+# public info
+@app.get("/api/about")
+def about():
+    import sys
+    import fastapi
+    return {
+        "name": "Luogu Contest Reminder",
+        "version": APP_VERSION,
+        "repository": "https://github.com/ILoveScratch2/Luogu-Contest-Reminder",
+        "license": "AGPL-3.0",
+        "backend": {
+            "version": APP_VERSION,
+            "python": sys.version.split()[0],
+            "fastapi": fastapi.__version__,
+        },
+    }
 
 
 # contest routes

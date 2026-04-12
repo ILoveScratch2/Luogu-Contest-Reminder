@@ -39,6 +39,7 @@ import {
   deleteUser,
   getSmtp,
   getUsers,
+  parseApiError,
   saveSmtp,
   testSmtp,
   triggerReminder,
@@ -88,7 +89,7 @@ function UsersTab({ t }) {
       setEditUser(null)
       load()
     } catch (err) {
-      showSnack(err.response?.data?.detail || t('common.error'), 'error')
+      showSnack(parseApiError(err) || t('common.error'), 'error')
     }
   }
 
@@ -99,7 +100,7 @@ function UsersTab({ t }) {
       setDelTarget(null)
       load()
     } catch (err) {
-      showSnack(err.response?.data?.detail || t('common.error'), 'error')
+      showSnack(parseApiError(err) || t('common.error'), 'error')
     }
   }
 
@@ -115,7 +116,7 @@ function UsersTab({ t }) {
       setCreateOpen(false)
       load()
     } catch (err) {
-      showSnack(err.response?.data?.detail || t('common.error'), 'error')
+      showSnack(parseApiError(err) || t('common.error'), 'error')
     }
   }
 
@@ -321,7 +322,7 @@ function SmtpTab({ t }) {
       await saveSmtp(form)
       showSnack(t('admin.smtp.saved'))
     } catch (err) {
-      showSnack(err.response?.data?.detail || t('common.error'), 'error')
+      showSnack(parseApiError(err) || t('common.error'), 'error')
     } finally {
       setSaving(false)
     }
@@ -333,7 +334,7 @@ function SmtpTab({ t }) {
       await testSmtp()
       showSnack(t('admin.smtp.testSuccess'))
     } catch (err) {
-      showSnack(`${t('admin.smtp.testFailed')}: ${err.response?.data?.detail || ''}`, 'error')
+      showSnack(`${t('admin.smtp.testFailed')}: ${parseApiError(err)}`, 'error')
     } finally {
       setTesting(false)
     }
@@ -388,7 +389,7 @@ function SystemTab({ t }) {
       await triggerReminder()
       setSnack({ open: true, msg: t('admin.system.triggered'), sev: 'success' })
     } catch (err) {
-      setSnack({ open: true, msg: err.response?.data?.detail || t('common.error'), sev: 'error' })
+      setSnack({ open: true, msg: parseApiError(err) || t('common.error'), sev: 'error' })
     } finally {
       setTriggering(false)
     }

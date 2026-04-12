@@ -8,18 +8,47 @@ import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Admin from './pages/Admin.jsx'
+import About from './pages/About.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import AdminRoute from './components/AdminRoute.jsx'
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: 24, fontFamily: 'sans-serif' }}>
+          <h2>Page Error</h2>
+          <button
+            onClick={() => { this.setState({ hasError: false }); window.location.href = '/' }}
+            style={{ padding: '8px 24px', cursor: 'pointer', fontSize: 16 }}
+          >
+            Return
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 export default function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
       <AuthProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/about" element={<About />} />
             <Route
               path="/dashboard"
               element={
@@ -41,5 +70,6 @@ export default function App() {
         </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
+    </ErrorBoundary>
   )
 }

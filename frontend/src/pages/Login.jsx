@@ -16,9 +16,10 @@ import {
 } from '@mui/material'
 import Visibility from '@mui/icons-material/Visibility'
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
-import { login as loginApi } from '../api/index.js'
+import { login as loginApi, parseApiError } from '../api/index.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
+import Footer from '../components/Footer.jsx'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -40,8 +41,7 @@ export default function Login() {
       login(data.token, data.user)
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      const detail = err.response?.data?.detail
-      setError(detail || t('auth.invalidCredentials'))
+      setError(parseApiError(err) || t('auth.invalidCredentials'))
     } finally {
       setLoading(false)
     }
@@ -134,6 +134,7 @@ export default function Login() {
           </Typography>
         </CardContent>
       </Card>
+      <Footer />
     </Box>
   )
 }

@@ -16,9 +16,10 @@ import {
 } from '@mui/material'
 import Visibility from '@mui/icons-material/Visibility'
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
-import { sendCode, register as registerApi } from '../api/index.js'
+import { sendCode, register as registerApi, parseApiError } from '../api/index.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
+import Footer from '../components/Footer.jsx'
 
 export default function Register() {
   const { t } = useTranslation()
@@ -61,7 +62,7 @@ export default function Register() {
       setInfo(t('auth.codeSent'))
       startCooldown()
     } catch (err) {
-      setError(err.response?.data?.detail || t('common.error'))
+      setError(parseApiError(err) || t('common.error'))
     } finally {
       setSendingCode(false)
     }
@@ -79,7 +80,7 @@ export default function Register() {
       login(data.token, data.user)
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(err.response?.data?.detail || t('common.error'))
+      setError(parseApiError(err) || t('common.error'))
     } finally {
       setRegistering(false)
     }
@@ -204,6 +205,7 @@ export default function Register() {
           </Typography>
         </CardContent>
       </Card>
+      <Footer />
     </Box>
   )
 }

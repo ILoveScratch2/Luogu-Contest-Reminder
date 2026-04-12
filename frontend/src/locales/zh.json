@@ -5,6 +5,7 @@
   "nav": {
     "dashboard": "控制台",
     "admin": "管理面板",
+    "about": "关于",
     "logout": "退出登录"
   },
   "lang": {
@@ -125,5 +126,18 @@
     "yes": "是",
     "no": "否",
     "back": "返回"
+  },
+  "about": {
+    "title": "关于",
+    "description": "一个开源的洛谷比赛邮箱提醒系统。",
+    "repository": "开源地址",
+    "license": "开源许可证",
+    "backendVersion": "后端版本",
+    "frontendVersion": "前端版本",
+    "pythonVersion": "Python 版本",
+    "fastapiVersion": "FastAPI 版本",
+    "techStack": "技术栈",
+    "loading": "加载信息中…",
+    "poweredBy": "Powered by"
   }
 }

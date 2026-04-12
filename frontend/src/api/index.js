@@ -26,6 +26,20 @@ api.interceptors.response.use(
 
 export default api
 
+/**
+ * convert error info
+ */
+export function parseApiError(err, fallback = '') {
+  const detail = err?.response?.data?.detail
+  if (!detail) return fallback
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) return detail.map((e) => e.msg || String(e)).join('; ')
+  return String(detail)
+}
+
+// public
+export const getAbout = () => api.get('/about')
+
 // auth
 export const sendCode = (email) =>
   api.post('/auth/send-code', { email })

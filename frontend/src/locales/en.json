@@ -5,6 +5,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "admin": "Admin Panel",
+    "about": "About",
     "logout": "Logout"
   },
   "lang": {
@@ -125,5 +126,18 @@
     "yes": "Yes",
     "no": "No",
     "back": "Back"
+  },
+  "about": {
+    "title": "About",
+    "description": "An open-source email reminder system for Luogu contests.",
+    "repository": "Repository",
+    "license": "License",
+    "backendVersion": "Backend Version",
+    "frontendVersion": "Frontend Version",
+    "pythonVersion": "Python Version",
+    "fastapiVersion": "FastAPI Version",
+    "techStack": "Tech Stack",
+    "loading": "Loading info…",
+    "poweredBy": "Powered by"
   }
 }
