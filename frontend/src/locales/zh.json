@@ -79,7 +79,11 @@
       "root": "管理员",
       "normal": "普通用户",
       "editTitle": "编辑用户",
+      "createTitle": "新建用户",
+      "createBtn": "新建用户",
+      "created": "用户已创建",
       "newPassword": "新密码（留空不修改）",
+      "password": "密码（至少 8 位）",
       "deleteConfirm": "确定要删除用户 {{email}} 吗？",
       "updated": "用户已更新",
       "deleted": "用户已删除"

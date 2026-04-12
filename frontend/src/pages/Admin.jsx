@@ -30,10 +30,12 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import {
+  createUser,
   deleteUser,
   getSmtp,
   getUsers,
@@ -59,6 +61,8 @@ function UsersTab({ t }) {
   const [editUser, setEditUser] = useState(null)
   const [editForm, setEditForm] = useState({})
   const [delTarget, setDelTarget] = useState(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createForm, setCreateForm] = useState({ email: '', password: '', is_root: false, is_active: true, email_reminder: true, send_contest_body: false })
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' })
 
   const showSnack = (msg, sev = 'success') => setSnack({ open: true, msg, sev })
@@ -99,10 +103,31 @@ function UsersTab({ t }) {
     }
   }
 
+  const openCreate = () => {
+    setCreateForm({ email: '', password: '', is_root: false, is_active: true, email_reminder: true, send_contest_body: false })
+    setCreateOpen(true)
+  }
+
+  const handleCreate = async () => {
+    try {
+      await createUser(createForm)
+      showSnack(t('admin.users.created'))
+      setCreateOpen(false)
+      load()
+    } catch (err) {
+      showSnack(err.response?.data?.detail || t('common.error'), 'error')
+    }
+  }
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
 
   return (
     <>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+        <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={openCreate}>
+          {t('admin.users.createBtn')}
+        </Button>
+      </Box>
       <TableContainer>
         <Table size="small">
           <TableHead>
@@ -221,6 +246,45 @@ function UsersTab({ t }) {
         <DialogActions>
           <Button onClick={() => setDelTarget(null)}>{t('common.cancel')}</Button>
           <Button variant="contained" color="error" onClick={handleDelete}>{t('common.confirm')}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* create user dialog */}
+      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>{t('admin.users.createTitle')}</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+          <TextField
+            label={t('admin.users.email')}
+            type="email"
+            value={createForm.email}
+            onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+          />
+          <TextField
+            label={t('admin.users.password')}
+            type="password"
+            value={createForm.password}
+            onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+          />
+          <FormControlLabel
+            control={<Switch checked={createForm.is_active} onChange={(e) => setCreateForm((f) => ({ ...f, is_active: e.target.checked }))} />}
+            label={t('admin.users.active')}
+          />
+          <FormControlLabel
+            control={<Switch checked={createForm.email_reminder} onChange={(e) => setCreateForm((f) => ({ ...f, email_reminder: e.target.checked }))} />}
+            label={t('admin.users.reminder')}
+          />
+          <FormControlLabel
+            control={<Switch checked={createForm.send_contest_body} onChange={(e) => setCreateForm((f) => ({ ...f, send_contest_body: e.target.checked }))} />}
+            label={t('admin.users.body')}
+          />
+          <FormControlLabel
+            control={<Switch checked={createForm.is_root} onChange={(e) => setCreateForm((f) => ({ ...f, is_root: e.target.checked }))} />}
+            label={t('admin.users.root')}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateOpen(false)}>{t('common.cancel')}</Button>
+          <Button variant="contained" onClick={handleCreate}>{t('common.save')}</Button>
         </DialogActions>
       </Dialog>
 

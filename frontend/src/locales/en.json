@@ -79,7 +79,11 @@
       "root": "Admin",
       "normal": "User",
       "editTitle": "Edit User",
+      "createTitle": "Create User",
+      "createBtn": "New User",
+      "created": "User created",
       "newPassword": "New Password (leave blank to keep)",
+      "password": "Password (min 8 characters)",
       "deleteConfirm": "Delete user {{email}}?",
       "updated": "User updated",
       "deleted": "User deleted"

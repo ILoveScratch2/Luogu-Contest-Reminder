@@ -130,6 +130,15 @@ class SettingsRequest(BaseModel):
     send_contest_body: Optional[bool] = None
 
 
+class CreateUserRequest(BaseModel):
+    email: EmailStr
+    password: str
+    is_root: bool = False
+    is_active: bool = True
+    email_reminder: bool = True
+    send_contest_body: bool = False
+
+
 class UpdateUserRequest(BaseModel):
     is_active: Optional[bool] = None
     email_reminder: Optional[bool] = None
@@ -279,6 +288,30 @@ def delete_own_account(current: User = Depends(get_current_user), db: Session = 
 @app.get("/api/admin/users")
 def list_users(root: User = Depends(require_root), db: Session = Depends(get_db)):
     return [_user_dict(u) for u in db.query(User).order_by(User.id).all()]
+
+
+@app.post("/api/admin/users", status_code=201)
+def create_user(
+    req: CreateUserRequest,
+    root: User = Depends(require_root),
+    db: Session = Depends(get_db),
+):
+    if db.query(User).filter(User.email == req.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+    if len(req.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    user = User(
+        email=req.email,
+        password_hash=hash_password(req.password),
+        is_root=req.is_root,
+        is_active=req.is_active,
+        email_reminder=req.email_reminder,
+        send_contest_body=req.send_contest_body,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return _user_dict(user)
 
 
 @app.put("/api/admin/users/{user_id}")
