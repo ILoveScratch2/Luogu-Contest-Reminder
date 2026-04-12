@@ -1,7 +1,7 @@
 import json
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from database import SessionLocal, User, SentReminder, SchedulerConfig
+from database import SessionLocal, User, SentReminder, SchedulerConfig, SiteConfig
 from email_service import send_contest_reminder
 from fetch_contest import get_upcoming_contests, fetch_contest_detail
 
@@ -13,7 +13,9 @@ def run_reminder_job():
     print("[scheduler] Running reminder job …")
     db = SessionLocal()
     try:
-        contests = get_upcoming_contests(24)
+        site_cfg = db.query(SiteConfig).first()
+        ttl = site_cfg.contest_cache_ttl if site_cfg and site_cfg.contest_cache_ttl is not None else 5
+        contests = get_upcoming_contests(24, ttl)
         if not contests:
             print("[scheduler] No upcoming contests found.")
             return

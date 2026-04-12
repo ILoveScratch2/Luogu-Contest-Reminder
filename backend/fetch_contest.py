@@ -1,5 +1,10 @@
 import time
+import threading
 import requests
+
+_cache_lock = threading.Lock()
+_cached_contests = None
+_cache_ts = 0.0
 
 
 def fetch_contest_list():
@@ -49,9 +54,18 @@ def fetch_contest_detail(contest_id: int):
         return None
 
 
-def get_upcoming_contests(hours: int = 24):
-    """返回未来 hours 内开始的比赛列表"""
-    contests = fetch_contest_list()
+def get_upcoming_contests(hours: int = 24, ttl_minutes: int = 5):
+    """返回未来 hours 内开始的比赛列表，ttl_minutes=0 表示不缓存"""
+    global _cached_contests, _cache_ts
+    now = time.time()
+    with _cache_lock:
+        if ttl_minutes > 0 and _cached_contests is not None and (now - _cache_ts) < ttl_minutes * 60:
+            contests = _cached_contests
+        else:
+            contests = fetch_contest_list()
+            if contests is not None:
+                _cached_contests = contests
+                _cache_ts = now
     if not contests:
         return []
     now = time.time()

@@ -123,6 +123,8 @@
       "primaryColorHelp": "Hex color value, e.g. #1976d2",
       "faviconUrl": "Favicon URL",
       "faviconUrlHelp": "URL for the page icon (leave blank to use default)",
+      "contestCacheTtl": "Contest List Cache Duration (minutes)",
+      "contestCacheTtlHelp": "0 = no cache (always fetch from Luogu API); N = cache results for N minutes",
       "save": "Save Settings",
       "saved": "Site settings saved",
       "preview": "Color Preview"

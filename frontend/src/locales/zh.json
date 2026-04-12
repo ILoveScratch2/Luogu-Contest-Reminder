@@ -123,6 +123,8 @@
       "primaryColorHelp": "十六进制颜色值，如 #1976d2",
       "faviconUrl": "Favicon URL",
       "faviconUrlHelp": "页面图标地址（留空使用默认）",
+      "contestCacheTtl": "比赛列表缓存时长（分钟）",
+      "contestCacheTtlHelp": "0 表示不缓存，每次请求直接查询 Luogu API；N 表示缓存 N 分钟",
       "save": "保存设置",
       "saved": "站点设置已保存",
       "preview": "颜色预览"

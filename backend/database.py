@@ -62,6 +62,7 @@ class SiteConfig(Base):
     site_title = Column(String, default="Luogu Contest Reminder", nullable=False)
     primary_color = Column(String, default="#1976d2", nullable=False)
     favicon_url = Column(String, default="", nullable=False)
+    contest_cache_ttl = Column(Integer, default=5, nullable=False)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
@@ -91,3 +92,13 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # Migrate: add columns that may be missing from existing databases
+    with engine.connect() as conn:
+        existing = [row[1] for row in conn.execute(
+            __import__('sqlalchemy').text("PRAGMA table_info(site_config)")
+        )]
+        if "contest_cache_ttl" not in existing:
+            conn.execute(__import__('sqlalchemy').text(
+                "ALTER TABLE site_config ADD COLUMN contest_cache_ttl INTEGER NOT NULL DEFAULT 5"
+            ))
+            conn.commit()

@@ -678,6 +678,7 @@ function SiteConfigTab({ t }) {
     site_title: '',
     primary_color: '#1976d2',
     favicon_url: '',
+    contest_cache_ttl: 5,
   })
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -688,7 +689,7 @@ function SiteConfigTab({ t }) {
   useEffect(() => {
     getSiteConfig()
       .then(({ data }) => {
-        if (data) setForm({ site_title: data.site_title || '', primary_color: data.primary_color || '#1976d2', favicon_url: data.favicon_url || '' })
+        if (data) setForm({ site_title: data.site_title || '', primary_color: data.primary_color || '#1976d2', favicon_url: data.favicon_url || '', contest_cache_ttl: data.contest_cache_ttl ?? 5 })
         setLoaded(true)
       })
       .catch(() => setLoaded(true))
@@ -744,6 +745,17 @@ function SiteConfigTab({ t }) {
           value={form.favicon_url}
           onChange={set('favicon_url')}
           helperText={t('admin.site.faviconUrlHelp')}
+        />
+        <TextField
+          label={t('admin.site.contestCacheTtl')}
+          value={form.contest_cache_ttl}
+          onChange={(e) => {
+            const v = parseInt(e.target.value, 10)
+            setForm((f) => ({ ...f, contest_cache_ttl: isNaN(v) ? 0 : Math.max(0, v) }))
+          }}
+          helperText={t('admin.site.contestCacheTtlHelp')}
+          type="number"
+          inputProps={{ min: 0 }}
         />
         <Box>
           <Button variant="contained" onClick={handleSave} disabled={saving}>

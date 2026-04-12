@@ -165,6 +165,7 @@ class SiteConfigRequest(BaseModel):
     site_title: str = "Luogu Contest Reminder"
     primary_color: str = "#1976d2"
     favicon_url: str = ""
+    contest_cache_ttl: int = 5
 
 
 class SchedulerConfigRequest(BaseModel):
@@ -539,8 +540,8 @@ def update_email_template(
 def get_site_config(db: Session = Depends(get_db)):
     cfg = db.query(SiteConfig).first()
     if not cfg:
-        return {"site_title": "Luogu Contest Reminder", "primary_color": "#1976d2", "favicon_url": ""}
-    return {"site_title": cfg.site_title, "primary_color": cfg.primary_color, "favicon_url": cfg.favicon_url}
+        return {"site_title": "Luogu Contest Reminder", "primary_color": "#1976d2", "favicon_url": "", "contest_cache_ttl": 5}
+    return {"site_title": cfg.site_title, "primary_color": cfg.primary_color, "favicon_url": cfg.favicon_url, "contest_cache_ttl": cfg.contest_cache_ttl if cfg.contest_cache_ttl is not None else 5}
 
 
 @app.put("/api/admin/site-config")
@@ -552,17 +553,21 @@ def update_site_config(
     import re
     if not re.match(r'^#[0-9A-Fa-f]{6}$', req.primary_color):
         raise HTTPException(status_code=400, detail="Invalid color format, expected #rrggbb")
+    if req.contest_cache_ttl < 0:
+        raise HTTPException(status_code=400, detail="Cache TTL must be >= 0")
     cfg = db.query(SiteConfig).first()
     if cfg:
         cfg.site_title = req.site_title
         cfg.primary_color = req.primary_color
         cfg.favicon_url = req.favicon_url
+        cfg.contest_cache_ttl = req.contest_cache_ttl
         cfg.updated_at = datetime.datetime.utcnow()
     else:
         cfg = SiteConfig(
             site_title=req.site_title,
             primary_color=req.primary_color,
             favicon_url=req.favicon_url,
+            contest_cache_ttl=req.contest_cache_ttl,
         )
         db.add(cfg)
     db.commit()
@@ -589,8 +594,10 @@ def about():
 
 # contest routes
 @app.get("/api/contests/upcoming")
-def upcoming_contests(current: User = Depends(get_current_user)):
-    return get_upcoming_contests(24) or []
+def upcoming_contests(current: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    cfg = db.query(SiteConfig).first()
+    ttl = cfg.contest_cache_ttl if cfg and cfg.contest_cache_ttl is not None else 5
+    return get_upcoming_contests(24, ttl) or []
 
 
 # entry 
