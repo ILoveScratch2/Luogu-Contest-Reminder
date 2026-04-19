@@ -55,7 +55,20 @@
     "deleteAccountConfirm": "确定要永久注销账号吗？此操作不可撤销。",
     "accountDeleted": "账号已注销",
     "goContest": "查看比赛",
-    "nextReminder": "每日 08:00 CST 发送提醒（服务器时间）"
+    "nextReminder": "每日 08:00 CST 发送提醒（服务器时间）",
+    "changeEmail": {
+      "title": "更换邮箱",
+      "step1Desc": "当前绑定邮箱：{{email}}。请输入新邮箱地址，系统将向新旧邮箱各发送一个验证码。",
+      "newEmail": "新邮箱地址",
+      "sendCodes": "发送验证码",
+      "codeSent": "验证码已发送至新旧邮箱，请分别查收",
+      "step2Desc": "请分别输入发送至 {{oldEmail}} 和 {{newEmail}} 的验证码。",
+      "oldCode": "旧邮箱验证码（{{email}}）",
+      "newCode": "新邮箱验证码（{{email}}）",
+      "resend": "重新发送验证码",
+      "resendCooldown": "重新发送（{{seconds}}s）",
+      "success": "邮箱已成功更换"
+    }
   },
   "admin": {
     "title": "管理面板",

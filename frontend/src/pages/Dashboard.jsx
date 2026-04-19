@@ -18,6 +18,7 @@ import {
   FormControlLabel,
   Link,
   Snackbar,
+  Stack,
   Switch,
   Table,
   TableBody,
@@ -25,10 +26,19 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Typography,
 } from '@mui/material'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
-import { deleteAccount, getProfile, getUpcomingContests, updateSettings, parseApiError } from '../api/index.js'
+import {
+  deleteAccount,
+  getProfile,
+  getUpcomingContests,
+  updateSettings,
+  parseApiError,
+  sendChangeEmailCode,
+  confirmChangeEmail,
+} from '../api/index.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Layout from '../components/Layout.jsx'
 
@@ -58,6 +68,22 @@ export default function Dashboard() {
   const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' })
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // change email dialog state
+  const [changeEmailOpen, setChangeEmailOpen] = useState(false)
+  const [changeEmailStep, setChangeEmailStep] = useState(1) // 1: input new email, 2: input codes
+  const [newEmail, setNewEmail] = useState('')
+  const [oldCode, setOldCode] = useState('')
+  const [newCode, setNewCode] = useState('')
+  const [sendingCodes, setSendingCodes] = useState(false)
+  const [confirmingChange, setConfirmingChange] = useState(false)
+  const [codeCooldown, setCodeCooldown] = useState(0)
+
+  useEffect(() => {
+    if (codeCooldown <= 0) return
+    const timer = setTimeout(() => setCodeCooldown((c) => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [codeCooldown])
 
   const showSnack = (msg, severity = 'success') =>
     setSnack({ open: true, msg, severity })
@@ -106,6 +132,44 @@ export default function Dashboard() {
       showSnack(parseApiError(err) || t('common.error'), 'error')
       setDeleting(false)
       setDeleteOpen(false)
+    }
+  }
+
+  const handleOpenChangeEmail = () => {
+    setNewEmail('')
+    setOldCode('')
+    setNewCode('')
+    setChangeEmailStep(1)
+    setCodeCooldown(0)
+    setChangeEmailOpen(true)
+  }
+
+  const handleSendChangeCodes = async () => {
+    if (!newEmail) return
+    setSendingCodes(true)
+    try {
+      await sendChangeEmailCode(newEmail)
+      setChangeEmailStep(2)
+      setCodeCooldown(60)
+      showSnack(t('dashboard.changeEmail.codeSent'))
+    } catch (err) {
+      showSnack(parseApiError(err) || t('common.error'), 'error')
+    } finally {
+      setSendingCodes(false)
+    }
+  }
+
+  const handleConfirmChangeEmail = async () => {
+    setConfirmingChange(true)
+    try {
+      const { data } = await confirmChangeEmail({ new_email: newEmail, old_code: oldCode, new_code: newCode })
+      patchUser(data.user)
+      setChangeEmailOpen(false)
+      showSnack(t('dashboard.changeEmail.success'))
+    } catch (err) {
+      showSnack(parseApiError(err) || t('common.error'), 'error')
+    } finally {
+      setConfirmingChange(false)
     }
   }
 
@@ -197,6 +261,13 @@ export default function Dashboard() {
                   <Chip label="Admin" size="small" color="primary" sx={{ ml: 1 }} />
                 )}
               </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Button
+                  variant="outlined"
+                  onClick={handleOpenChangeEmail}
+                >
+                  {t('dashboard.changeEmail.title')}
+                </Button>
               <Button
                 variant="outlined"
                 color="error"
@@ -205,6 +276,7 @@ export default function Dashboard() {
               >
                 {t('dashboard.deleteAccount')}
               </Button>
+              </Stack>
             </CardContent>
           </Card>
         </Box>
@@ -275,6 +347,82 @@ export default function Dashboard() {
           <Button color="error" variant="contained" onClick={handleDeleteAccount} disabled={deleting}>
             {deleting ? <CircularProgress size={18} /> : t('common.confirm')}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* change email dialog */}
+      <Dialog open={changeEmailOpen} onClose={() => setChangeEmailOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>{t('dashboard.changeEmail.title')}</DialogTitle>
+        <DialogContent>
+          {changeEmailStep === 1 ? (
+            <>
+              <DialogContentText sx={{ mb: 2 }}>
+                {t('dashboard.changeEmail.step1Desc', { email: user?.email })}
+              </DialogContentText>
+              <TextField
+                label={t('dashboard.changeEmail.newEmail')}
+                type="email"
+                fullWidth
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && newEmail && handleSendChangeCodes()}
+                autoFocus
+              />
+            </>
+          ) : (
+            <>
+              <DialogContentText sx={{ mb: 2 }}>
+                {t('dashboard.changeEmail.step2Desc', { oldEmail: user?.email, newEmail })}
+              </DialogContentText>
+              <Stack spacing={2}>
+                <TextField
+                  label={t('dashboard.changeEmail.oldCode', { email: user?.email })}
+                  fullWidth
+                  inputProps={{ maxLength: 6 }}
+                  value={oldCode}
+                  onChange={(e) => setOldCode(e.target.value.replace(/\D/g, ''))}
+                  autoFocus
+                />
+                <TextField
+                  label={t('dashboard.changeEmail.newCode', { email: newEmail })}
+                  fullWidth
+                  inputProps={{ maxLength: 6 }}
+                  value={newCode}
+                  onChange={(e) => setNewCode(e.target.value.replace(/\D/g, ''))}
+                />
+                <Button
+                  size="small"
+                  disabled={codeCooldown > 0 || sendingCodes}
+                  onClick={handleSendChangeCodes}
+                  sx={{ alignSelf: 'flex-start' }}
+                >
+                  {codeCooldown > 0
+                    ? t('dashboard.changeEmail.resendCooldown', { seconds: codeCooldown })
+                    : t('dashboard.changeEmail.resend')}
+                </Button>
+              </Stack>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setChangeEmailOpen(false)}>{t('common.cancel')}</Button>
+          {changeEmailStep === 1 ? (
+            <Button
+              variant="contained"
+              onClick={handleSendChangeCodes}
+              disabled={!newEmail || sendingCodes}
+            >
+              {sendingCodes ? <CircularProgress size={18} /> : t('dashboard.changeEmail.sendCodes')}
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              onClick={handleConfirmChangeEmail}
+              disabled={oldCode.length !== 6 || newCode.length !== 6 || confirmingChange}
+            >
+              {confirmingChange ? <CircularProgress size={18} /> : t('common.confirm')}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 

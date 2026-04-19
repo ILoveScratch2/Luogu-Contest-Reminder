@@ -57,6 +57,12 @@ export const updateSettings = (data) => api.put('/user/settings', data)
 
 export const deleteAccount = () => api.delete('/user/account')
 
+export const sendChangeEmailCode = (new_email) =>
+  api.post('/user/send-change-email-code', { new_email })
+
+export const confirmChangeEmail = (data) =>
+  api.post('/user/confirm-change-email', data)
+
 // contests
 export const getUpcomingContests = () => api.get('/contests/upcoming')
 

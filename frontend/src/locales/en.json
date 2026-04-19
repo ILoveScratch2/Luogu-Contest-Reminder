@@ -55,7 +55,20 @@
     "deleteAccountConfirm": "Are you sure you want to permanently delete your account? This action is irreversible.",
     "accountDeleted": "Account deleted",
     "goContest": "View Contest",
-    "nextReminder": "Daily reminders are sent at 08:00 CST (server time)"
+    "nextReminder": "Daily reminders are sent at 08:00 CST (server time)",
+    "changeEmail": {
+      "title": "Change Email",
+      "step1Desc": "Current email: {{email}}. Enter your new email address. Verification codes will be sent to both addresses.",
+      "newEmail": "New Email Address",
+      "sendCodes": "Send Codes",
+      "codeSent": "Verification codes sent to both email addresses",
+      "step2Desc": "Enter the codes sent to {{oldEmail}} and {{newEmail}}.",
+      "oldCode": "Code for current email ({{email}})",
+      "newCode": "Code for new email ({{email}})",
+      "resend": "Resend Codes",
+      "resendCooldown": "Resend ({{seconds}}s)",
+      "success": "Email changed successfully"
+    }
   },
   "admin": {
     "title": "Admin Panel",

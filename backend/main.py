@@ -177,6 +177,16 @@ class EmailTemplateRequest(BaseModel):
     html_body: Optional[str] = None
 
 
+class SendChangeEmailCodeRequest(BaseModel):
+    new_email: EmailStr
+
+
+class ConfirmChangeEmailRequest(BaseModel):
+    new_email: EmailStr
+    old_code: str
+    new_code: str
+
+
 # Auth routes
 @app.post("/api/auth/send-code")
 def send_code(req: SendCodeRequest, db: Session = Depends(get_db)):
@@ -302,6 +312,107 @@ def delete_own_account(current: User = Depends(get_current_user), db: Session = 
     db.delete(user)
     db.commit()
     return {"message": "Account deleted"}
+
+
+@app.post("/api/user/send-change-email-code")
+def send_change_email_code(
+    req: SendChangeEmailCodeRequest,
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not db.query(SmtpConfig).first():
+        raise HTTPException(status_code=503, detail="SMTP not configured by admin yet")
+
+    if req.new_email == current.email:
+        raise HTTPException(status_code=400, detail="New email must be different from current email")
+
+    if db.query(User).filter(User.email == req.new_email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # rate limit: 1 code per 60 seconds per email address
+    cutoff = datetime.datetime.utcnow() - datetime.timedelta(seconds=60)
+    for email_addr in (current.email, req.new_email):
+        recent = (
+            db.query(VerificationCode)
+            .filter(
+                VerificationCode.email == email_addr,
+                VerificationCode.purpose.in_(["change_email_old", "change_email_new"]),
+                VerificationCode.created_at > cutoff,
+            )
+            .first()
+        )
+        if recent:
+            raise HTTPException(status_code=429, detail="Please wait 60 seconds before requesting another code")
+
+    expires = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
+
+    old_code = "".join(random.choices(string.digits, k=6))
+    db.add(VerificationCode(email=current.email, code=old_code, purpose="change_email_old", expires_at=expires))
+
+    new_code = "".join(random.choices(string.digits, k=6))
+    db.add(VerificationCode(email=req.new_email, code=new_code, purpose="change_email_new", expires_at=expires))
+
+    db.commit()
+
+    from email_service import send_change_email_verification
+    if not send_change_email_verification(db, current.email, old_code, is_new_email=False):
+        raise HTTPException(status_code=500, detail="Failed to send verification email to current address")
+    if not send_change_email_verification(db, req.new_email, new_code, is_new_email=True):
+        raise HTTPException(status_code=500, detail="Failed to send verification email to new address")
+
+    return {"message": "Verification codes sent to both email addresses"}
+
+
+@app.post("/api/user/confirm-change-email")
+def confirm_change_email(
+    req: ConfirmChangeEmailRequest,
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if req.new_email == current.email:
+        raise HTTPException(status_code=400, detail="New email must be different from current email")
+
+    if db.query(User).filter(User.email == req.new_email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    now = datetime.datetime.utcnow()
+
+    old_code_row = (
+        db.query(VerificationCode)
+        .filter(
+            VerificationCode.email == current.email,
+            VerificationCode.code == req.old_code,
+            VerificationCode.purpose == "change_email_old",
+            VerificationCode.used == False,  # noqa: E712
+            VerificationCode.expires_at > now,
+        )
+        .first()
+    )
+    if not old_code_row:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification code for current email")
+
+    new_code_row = (
+        db.query(VerificationCode)
+        .filter(
+            VerificationCode.email == req.new_email,
+            VerificationCode.code == req.new_code,
+            VerificationCode.purpose == "change_email_new",
+            VerificationCode.used == False,  # noqa: E712
+            VerificationCode.expires_at > now,
+        )
+        .first()
+    )
+    if not new_code_row:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification code for new email")
+
+    user = db.query(User).filter(User.id == current.id).first()
+    user.email = req.new_email
+    old_code_row.used = True
+    new_code_row.used = True
+    db.commit()
+    db.refresh(user)
+
+    return {"message": "Email changed successfully", "user": _user_dict(user)}
 
 
 # admin – users

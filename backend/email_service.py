@@ -288,3 +288,63 @@ def send_contest_reminder(
         "site_title": site_title,
     })
     return _send(config, to_email, subject, html)
+
+
+def send_change_email_verification(db: Session, to_email: str, code: str, is_new_email: bool) -> bool:
+    config = _get_config(db)
+    if not config:
+        print("[email] SMTP 未配置，无法发送验证码")
+        return False
+
+    primary = _get_primary_color(db)
+    dark = _darken_color(primary)
+    site_title = _get_site_title(db)
+
+    if is_new_email:
+        desc = "您正在更换账号绑定的邮箱。请在页面输入以下验证码以验证<strong>新邮箱</strong>："
+        purpose_label = "新邮箱验证"
+    else:
+        desc = "您正在更换账号绑定的邮箱。请在页面输入以下验证码以验证<strong>当前邮箱</strong>："
+        purpose_label = "当前邮箱验证"
+
+    subject = f"{site_title} — 邮箱换绑验证码（{purpose_label}）"
+    html = f"""\
+<!DOCTYPE html>
+<html lang="zh">
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr><td align="center" style="padding:40px 0;">
+    <table width="480" cellpadding="0" cellspacing="0"
+           style="background:#fff;border-radius:12px;overflow:hidden;
+                  box-shadow:0 4px 24px rgba(0,0,0,.10);">
+      <tr>
+        <td style="background:linear-gradient(135deg,{dark},{primary});
+                   padding:32px;text-align:center;color:#fff;">
+          <div style="font-size:26px;font-weight:700;letter-spacing:.5px;">
+            {site_title}
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:36px 40px;">
+          <h2 style="color:{primary};margin:0 0 12px;">邮箱换绑验证码</h2>
+          <p style="color:#555;margin:0 0 24px;">
+            {desc}
+          </p>
+          <div style="background:#e3f2fd;border:2px solid {primary};border-radius:10px;
+                      padding:24px;text-align:center;margin-bottom:24px;">
+            <span style="font-size:40px;font-weight:800;letter-spacing:12px;
+                         color:{dark};">{code}</span>
+          </div>
+          <p style="color:#999;font-size:13px;margin:0;">
+            验证码 <strong>10 分钟</strong>内有效。如非本人操作，请忽略此邮件。
+          </p>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>"""
+    return _send(config, to_email, subject, html)
