@@ -963,7 +963,11 @@ def upcoming_contests(current: User = Depends(get_current_user), db: Session = D
 
 
 # Static files (SPA frontend)
-_base_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+if getattr(sys, 'frozen', False):
+    # PyInstaller --onefile: --add-data files are extracted to sys._MEIPASS
+    _base_dir = sys._MEIPASS
+else:
+    _base_dir = os.path.dirname(os.path.abspath(__file__))
 _static_dir = os.path.join(_base_dir, "static")
 if os.path.isdir(_static_dir):
     app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
