@@ -1,0 +1,102 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+jobs:
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload frontend dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 1
+
+  build-backend:
+    needs: build-frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: windows
+          - os: macos-latest
+            platform: macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: backend/static/
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Build with PyInstaller
+        working-directory: backend
+        run: >
+          pyinstaller
+          --onefile
+          --name luogu-contest-reminder-${{ matrix.platform }}
+          --collect-all uvicorn
+          --hidden-import sqlalchemy.dialects.sqlite
+          --hidden-import email_validator
+          --hidden-import jose.backends
+          main.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luogu-contest-reminder-${{ matrix.platform }}
+          path: backend/dist/
+          retention-days: 7
+
+  upload-release-assets:
+    if: github.event_name == 'release'
+    needs: build-backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: luogu-contest-reminder-*
+          merge-multiple: false
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            luogu-contest-reminder-linux/luogu-contest-reminder-linux
+            luogu-contest-reminder-windows/luogu-contest-reminder-windows.exe
+            luogu-contest-reminder-macos/luogu-contest-reminder-macos
