@@ -16,6 +16,7 @@ import {
   DialogTitle,
   Divider,
   FormControlLabel,
+  IconButton,
   Link,
   Snackbar,
   Stack,
@@ -30,6 +31,8 @@ import {
   Typography,
 } from '@mui/material'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
+import Visibility from '@mui/icons-material/Visibility'
+import VisibilityOff from '@mui/icons-material/VisibilityOff'
 import {
   deleteAccount,
   getProfile,
@@ -38,9 +41,12 @@ import {
   parseApiError,
   sendChangeEmailCode,
   confirmChangeEmail,
+  changePassword,
 } from '../api/index.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { useSiteConfig } from '../contexts/SiteConfigContext.jsx'
 import Layout from '../components/Layout.jsx'
+import CaptchaWidget from '../components/CaptchaWidget.jsx'
 
 function tsCst(ts) {
   const d = new Date(ts * 1000)
@@ -57,6 +63,7 @@ function tsCst(ts) {
 export default function Dashboard() {
   const { t } = useTranslation()
   const { user, patchUser, logout } = useAuth()
+  const { config } = useSiteConfig()
   const navigate = useNavigate()
 
   const [settings, setSettings] = useState({
@@ -78,6 +85,14 @@ export default function Dashboard() {
   const [sendingCodes, setSendingCodes] = useState(false)
   const [confirmingChange, setConfirmingChange] = useState(false)
   const [codeCooldown, setCodeCooldown] = useState(0)
+  const [changeEmailCaptcha, setChangeEmailCaptcha] = useState({ captcha_token: '', captcha_answer: '' })
+  const handleChangeEmailCaptchaChange = useCallback((val) => setChangeEmailCaptcha(val), [])
+
+  // change password dialog state
+  const [changePwdOpen, setChangePwdOpen] = useState(false)
+  const [pwdForm, setPwdForm] = useState({ current_password: '', new_password: '', confirm_password: '' })
+  const [showPwd, setShowPwd] = useState(false)
+  const [changingPwd, setChangingPwd] = useState(false)
 
   useEffect(() => {
     if (codeCooldown <= 0) return
@@ -144,11 +159,40 @@ export default function Dashboard() {
     setChangeEmailOpen(true)
   }
 
+  const handleOpenChangePwd = () => {
+    setPwdForm({ current_password: '', new_password: '', confirm_password: '' })
+    setShowPwd(false)
+    setChangePwdOpen(true)
+  }
+
+  const handleChangePassword = async () => {
+    if (pwdForm.new_password.length < 8) {
+      showSnack(t('auth.passwordTooShort'), 'error'); return
+    }
+    if (pwdForm.new_password !== pwdForm.confirm_password) {
+      showSnack(t('auth.passwordMismatch'), 'error'); return
+    }
+    setChangingPwd(true)
+    try {
+      await changePassword({ current_password: pwdForm.current_password, new_password: pwdForm.new_password })
+      setChangePwdOpen(false)
+      showSnack(t('dashboard.changePassword.success'))
+    } catch (err) {
+      showSnack(parseApiError(err) || t('common.error'), 'error')
+    } finally {
+      setChangingPwd(false)
+    }
+  }
+
   const handleSendChangeCodes = async () => {
     if (!newEmail) return
+    const captchaType = config.captcha_on_change_email ? (config.captcha_type || 'none') : 'none'
+    if (captchaType !== 'none' && !changeEmailCaptcha.captcha_answer) {
+      showSnack(t('auth.captchaRequired'), 'error'); return
+    }
     setSendingCodes(true)
     try {
-      await sendChangeEmailCode(newEmail)
+      await sendChangeEmailCode(newEmail, changeEmailCaptcha.captcha_token, changeEmailCaptcha.captcha_answer)
       setChangeEmailStep(2)
       setCodeCooldown(60)
       showSnack(t('dashboard.changeEmail.codeSent'))
@@ -268,6 +312,12 @@ export default function Dashboard() {
                 >
                   {t('dashboard.changeEmail.title')}
                 </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleOpenChangePwd}
+                >
+                  {t('dashboard.changePassword.title')}
+                </Button>
               <Button
                 variant="outlined"
                 color="error"
@@ -368,6 +418,13 @@ export default function Dashboard() {
                 onKeyDown={(e) => e.key === 'Enter' && newEmail && handleSendChangeCodes()}
                 autoFocus
               />
+              {config.captcha_on_change_email && config.captcha_type && config.captcha_type !== 'none' && (
+                <CaptchaWidget
+                  captchaType={config.captcha_type}
+                  turnstileSiteKey={config.turnstile_site_key || ''}
+                  onChange={handleChangeEmailCaptchaChange}
+                />
+              )}
             </>
           ) : (
             <>
@@ -423,6 +480,55 @@ export default function Dashboard() {
               {confirmingChange ? <CircularProgress size={18} /> : t('common.confirm')}
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* change password dialog */}
+      <Dialog open={changePwdOpen} onClose={() => setChangePwdOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>{t('dashboard.changePassword.title')}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label={t('dashboard.changePassword.currentPassword')}
+              type={showPwd ? 'text' : 'password'}
+              fullWidth
+              value={pwdForm.current_password}
+              onChange={(e) => setPwdForm((f) => ({ ...f, current_password: e.target.value }))}
+              autoFocus
+              InputProps={{
+                endAdornment: (
+                  <IconButton onClick={() => setShowPwd((v) => !v)} edge="end" size="small">
+                    {showPwd ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                  </IconButton>
+                ),
+              }}
+            />
+            <TextField
+              label={t('dashboard.changePassword.newPassword')}
+              type={showPwd ? 'text' : 'password'}
+              fullWidth
+              value={pwdForm.new_password}
+              onChange={(e) => setPwdForm((f) => ({ ...f, new_password: e.target.value }))}
+              helperText={t('auth.passwordTooShort')}
+            />
+            <TextField
+              label={t('dashboard.changePassword.confirmPassword')}
+              type={showPwd ? 'text' : 'password'}
+              fullWidth
+              value={pwdForm.confirm_password}
+              onChange={(e) => setPwdForm((f) => ({ ...f, confirm_password: e.target.value }))}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setChangePwdOpen(false)}>{t('common.cancel')}</Button>
+          <Button
+            variant="contained"
+            onClick={handleChangePassword}
+            disabled={changingPwd || !pwdForm.current_password || !pwdForm.new_password || !pwdForm.confirm_password}
+          >
+            {changingPwd ? <CircularProgress size={18} /> : t('common.save')}
+          </Button>
         </DialogActions>
       </Dialog>
 

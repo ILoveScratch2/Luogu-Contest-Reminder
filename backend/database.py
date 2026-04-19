@@ -67,6 +67,15 @@ class SiteConfig(Base):
     primary_color = Column(String, default="#1976d2", nullable=False)
     favicon_url = Column(String, default="", nullable=False)
     contest_cache_ttl = Column(Integer, default=5, nullable=False)
+    # security / auth settings
+    allow_register = Column(Boolean, default=True, nullable=False)
+    captcha_type = Column(String, default="none", nullable=False)  # 'none' | 'builtin' | 'turnstile'
+    captcha_on_register = Column(Boolean, default=False, nullable=False)
+    captcha_on_login = Column(Boolean, default=False, nullable=False)
+    captcha_on_change_email = Column(Boolean, default=False, nullable=False)
+    turnstile_site_key = Column(String, default="", nullable=False)
+    turnstile_secret_key = Column(String, default="", nullable=False)
+    session_expire_days = Column(Integer, default=7, nullable=False)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
@@ -130,3 +139,23 @@ def init_db():
                 "ALTER TABLE smtp_config ADD COLUMN bcc_batch_size INTEGER NOT NULL DEFAULT 100"
             ))
             conn.commit()
+        # Migrate site_config – security fields
+        existing_site = [row[1] for row in conn.execute(
+            __import__('sqlalchemy').text("PRAGMA table_info(site_config)")
+        )]
+        _site_migrations = [
+            ("allow_register", "BOOLEAN NOT NULL DEFAULT 1"),
+            ("captcha_type", "VARCHAR NOT NULL DEFAULT 'none'"),
+            ("captcha_on_register", "BOOLEAN NOT NULL DEFAULT 0"),
+            ("captcha_on_login", "BOOLEAN NOT NULL DEFAULT 0"),
+            ("captcha_on_change_email", "BOOLEAN NOT NULL DEFAULT 0"),
+            ("turnstile_site_key", "VARCHAR NOT NULL DEFAULT ''"),
+            ("turnstile_secret_key", "VARCHAR NOT NULL DEFAULT ''"),
+            ("session_expire_days", "INTEGER NOT NULL DEFAULT 7"),
+        ]
+        for col, col_def in _site_migrations:
+            if col not in existing_site:
+                conn.execute(__import__('sqlalchemy').text(
+                    f"ALTER TABLE site_config ADD COLUMN {col} {col_def}"
+                ))
+                conn.commit()

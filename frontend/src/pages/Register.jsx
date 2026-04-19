@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import {
@@ -21,6 +21,7 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useSiteConfig } from '../contexts/SiteConfigContext.jsx'
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
 import Footer from '../components/Footer.jsx'
+import CaptchaWidget from '../components/CaptchaWidget.jsx'
 
 export default function Register() {
   const { t } = useTranslation()
@@ -39,8 +40,15 @@ export default function Register() {
   const [sendingCode, setSendingCode] = useState(false)
   const [registering, setRegistering] = useState(false)
 
+  const [captchaValue, setCaptchaValue] = useState({ captcha_token: '', captcha_answer: '' })
+
   const [info, setInfo] = useState('')
   const [error, setError] = useState('')
+
+  const captchaType = config.captcha_on_register ? (config.captcha_type || 'none') : 'none'
+  const turnstileSiteKey = config.turnstile_site_key || ''
+
+  const handleCaptchaChange = useCallback((val) => setCaptchaValue(val), [])
 
   // cooldown timer for resend code button
   const startCooldown = () => {
@@ -57,9 +65,12 @@ export default function Register() {
     setError('')
     setInfo('')
     if (!email) { setError(t('auth.email')); return }
+    if (captchaType !== 'none' && !captchaValue.captcha_answer) {
+      setError(t('auth.captchaRequired')); return
+    }
     setSendingCode(true)
     try {
-      await sendCode(email)
+      await sendCode(email, captchaValue.captcha_token, captchaValue.captcha_answer)
       setCodeSent(true)
       setInfo(t('auth.codeSent'))
       startCooldown()
@@ -86,6 +97,48 @@ export default function Register() {
     } finally {
       setRegistering(false)
     }
+  }
+
+  // Registration disabled
+  if (config.allow_register === false) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'background.default',
+          p: 2,
+        }}
+      >
+        <Box sx={{ position: 'fixed', top: 16, right: 16 }}>
+          <LanguageSwitcher />
+        </Box>
+        <Card sx={{ width: '100%', maxWidth: 440 }}>
+          <Box
+            sx={{
+              background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+              p: 4,
+              textAlign: 'center',
+              color: '#fff',
+            }}
+          >
+            <Typography variant="h5">{config.site_title || t('app.title')}</Typography>
+          </Box>
+          <CardContent sx={{ p: 3, textAlign: 'center' }}>
+            <Alert severity="error" sx={{ mb: 2 }}>{t('auth.registerDisabled')}</Alert>
+            <Typography variant="body2">
+              <Link component={RouterLink} to="/login" underline="hover">
+                {t('auth.hasAccount')}
+              </Link>
+            </Typography>
+          </CardContent>
+        </Card>
+        <Footer />
+      </Box>
+    )
   }
 
   return (
@@ -151,6 +204,16 @@ export default function Register() {
                   : t('auth.sendCode')}
               </Button>
             </Box>
+
+            {captchaType !== 'none' && (
+              <Box sx={{ mb: 2 }}>
+                <CaptchaWidget
+                  captchaType={captchaType}
+                  turnstileSiteKey={turnstileSiteKey}
+                  onChange={handleCaptchaChange}
+                />
+              </Box>
+            )}
 
             <TextField
               label={t('auth.verificationCode')}

@@ -17,6 +17,8 @@ import {
   FormControlLabel,
   IconButton,
   Link,
+  MenuItem,
+  Select,
   Snackbar,
   Stack,
   Switch,
@@ -41,6 +43,7 @@ import {
   createUser,
   deleteUser,
   getAbout,
+  getAdminSiteConfig,
   getEmailTemplate,
   getScheduler,
   getSmtp,
@@ -733,7 +736,7 @@ function SiteConfigTab({ t }) {
   const showSnack = (msg, sev = 'success') => setSnack({ open: true, msg, sev })
 
   useEffect(() => {
-    getSiteConfig()
+    getAdminSiteConfig()
       .then(({ data }) => {
         if (data) setForm({ site_title: data.site_title || '', primary_color: data.primary_color || '#1976d2', favicon_url: data.favicon_url || '', contest_cache_ttl: data.contest_cache_ttl ?? 5 })
         setLoaded(true)
@@ -806,6 +809,175 @@ function SiteConfigTab({ t }) {
         <Box>
           <Button variant="contained" onClick={handleSave} disabled={saving}>
             {saving ? <CircularProgress size={18} /> : t('admin.site.save')}
+          </Button>
+        </Box>
+      </Box>
+
+      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity={snack.sev} variant="filled" onClose={() => setSnack((s) => ({ ...s, open: false }))}>{snack.msg}</Alert>
+      </Snackbar>
+    </>
+  )
+}
+
+// security tab
+function SecurityTab({ t }) {
+  const [form, setForm] = useState({
+    allow_register: true,
+    captcha_type: 'none',
+    captcha_on_register: false,
+    captcha_on_login: false,
+    captcha_on_change_email: false,
+    turnstile_site_key: '',
+    turnstile_secret_key: '',
+    session_expire_days: 7,
+  })
+  const [loaded, setLoaded] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' })
+
+  const showSnack = (msg, sev = 'success') => setSnack({ open: true, msg, sev })
+
+  useEffect(() => {
+    getAdminSiteConfig()
+      .then(({ data }) => {
+        if (data) {
+          setForm({
+            allow_register: data.allow_register ?? true,
+            captcha_type: data.captcha_type || 'none',
+            captcha_on_register: data.captcha_on_register ?? false,
+            captcha_on_login: data.captcha_on_login ?? false,
+            captcha_on_change_email: data.captcha_on_change_email ?? false,
+            turnstile_site_key: data.turnstile_site_key || '',
+            turnstile_secret_key: data.turnstile_secret_key || '',
+            session_expire_days: data.session_expire_days ?? 7,
+          })
+        }
+        setLoaded(true)
+      })
+      .catch(() => setLoaded(true))
+  }, [])
+
+  const setCheck = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.checked }))
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await saveSiteConfig(form)
+      showSnack(t('admin.security.saved'))
+    } catch (err) {
+      showSnack(parseApiError(err) || t('common.error'), 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!loaded) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+
+  return (
+    <>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 520 }}>
+        {/* Registration */}
+        <Box>
+          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+            {t('admin.security.registrationTitle')}
+          </Typography>
+          <FormControlLabel
+            control={<Switch checked={form.allow_register} onChange={setCheck('allow_register')} />}
+            label={t('admin.security.allowRegister')}
+          />
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+            {t('admin.security.allowRegisterHelp')}
+          </Typography>
+        </Box>
+
+        <Divider />
+
+        {/* Session */}
+        <Box>
+          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+            {t('admin.security.sessionTitle')}
+          </Typography>
+          <TextField
+            label={t('admin.security.sessionExpireDays')}
+            type="number"
+            value={form.session_expire_days}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10)
+              setForm((f) => ({ ...f, session_expire_days: isNaN(v) ? 7 : Math.max(1, v) }))
+            }}
+            inputProps={{ min: 1 }}
+            helperText={t('admin.security.sessionExpireDaysHelp')}
+            sx={{ maxWidth: 260 }}
+          />
+        </Box>
+
+        <Divider />
+
+        {/* Captcha */}
+        <Box>
+          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+            {t('admin.security.captchaTitle')}
+          </Typography>
+
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              {t('admin.security.captchaType')}
+            </Typography>
+            <Select
+              value={form.captcha_type}
+              onChange={(e) => setForm((f) => ({ ...f, captcha_type: e.target.value }))}
+              size="small"
+              sx={{ minWidth: 200 }}
+            >
+              <MenuItem value="none">{t('admin.security.captchaTypeNone')}</MenuItem>
+              <MenuItem value="builtin">{t('admin.security.captchaTypeBuiltin')}</MenuItem>
+              <MenuItem value="turnstile">{t('admin.security.captchaTypeTurnstile')}</MenuItem>
+            </Select>
+          </Box>
+
+          {form.captcha_type === 'turnstile' && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2, pl: 1, borderLeft: '3px solid', borderColor: 'divider' }}>
+              <TextField
+                label={t('admin.security.turnstileSiteKey')}
+                value={form.turnstile_site_key}
+                onChange={(e) => setForm((f) => ({ ...f, turnstile_site_key: e.target.value }))}
+                helperText={t('admin.security.turnstileSiteKeyHelp')}
+              />
+              <TextField
+                label={t('admin.security.turnstileSecretKey')}
+                type="password"
+                value={form.turnstile_secret_key}
+                onChange={(e) => setForm((f) => ({ ...f, turnstile_secret_key: e.target.value }))}
+                helperText={t('admin.security.turnstileSecretKeyHelp')}
+              />
+            </Box>
+          )}
+
+          {form.captcha_type !== 'none' && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {t('admin.security.captchaOnLabel')}
+              </Typography>
+              <FormControlLabel
+                control={<Switch checked={form.captcha_on_register} onChange={setCheck('captcha_on_register')} />}
+                label={t('admin.security.captchaOnRegister')}
+              />
+              <FormControlLabel
+                control={<Switch checked={form.captcha_on_login} onChange={setCheck('captcha_on_login')} />}
+                label={t('admin.security.captchaOnLogin')}
+              />
+              <FormControlLabel
+                control={<Switch checked={form.captcha_on_change_email} onChange={setCheck('captcha_on_change_email')} />}
+                label={t('admin.security.captchaOnChangeEmail')}
+              />
+            </Box>
+          )}
+        </Box>
+
+        <Box>
+          <Button variant="contained" onClick={handleSave} disabled={saving}>
+            {saving ? <CircularProgress size={18} /> : t('common.save')}
           </Button>
         </Box>
       </Box>
@@ -914,13 +1086,14 @@ export default function Admin() {
 
       <Card>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tab} onChange={(_, v) => setTab(v)}>
+          <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto">
             <Tab label={t('admin.tabs.users')} />
             <Tab label={t('admin.tabs.smtp')} />
             <Tab label={t('admin.tabs.system')} />
             <Tab label={t('admin.tabs.site')} />
             <Tab label={t('admin.tabs.scheduler')} />
             <Tab label={t('admin.tabs.emailTemplate')} />
+            <Tab label={t('admin.tabs.security')} />
             <Tab label={t('admin.tabs.about')} />
           </Tabs>
         </Box>
@@ -933,7 +1106,8 @@ export default function Admin() {
           {tab === 3 && <SiteConfigTab t={t} />}
           {tab === 4 && <SchedulerTab t={t} />}
           {tab === 5 && <EmailTemplatesTab t={t} />}
-          {tab === 6 && <AboutTab t={t} />}
+          {tab === 6 && <SecurityTab t={t} />}
+          {tab === 7 && <AboutTab t={t} />}
         </CardContent>
       </Card>
     </Layout>

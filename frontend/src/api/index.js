@@ -41,14 +41,16 @@ export function parseApiError(err, fallback = '') {
 export const getAbout = () => api.get('/about')
 
 // auth
-export const sendCode = (email) =>
-  api.post('/auth/send-code', { email })
+export const sendCode = (email, captchaToken, captchaAnswer) =>
+  api.post('/auth/send-code', { email, captcha_token: captchaToken || null, captcha_answer: captchaAnswer || null })
 
 export const register = ({ email, code, password }) =>
   api.post('/auth/register', { email, code, password })
 
-export const login = ({ email, password }) =>
-  api.post('/auth/login', { email, password })
+export const login = ({ email, password, captchaToken, captchaAnswer }) =>
+  api.post('/auth/login', { email, password, captcha_token: captchaToken || null, captcha_answer: captchaAnswer || null })
+
+export const getCaptcha = () => api.get('/auth/captcha')
 
 // user
 export const getProfile = () => api.get('/user/profile')
@@ -57,11 +59,14 @@ export const updateSettings = (data) => api.put('/user/settings', data)
 
 export const deleteAccount = () => api.delete('/user/account')
 
-export const sendChangeEmailCode = (new_email) =>
-  api.post('/user/send-change-email-code', { new_email })
+export const sendChangeEmailCode = (new_email, captchaToken, captchaAnswer) =>
+  api.post('/user/send-change-email-code', { new_email, captcha_token: captchaToken || null, captcha_answer: captchaAnswer || null })
 
 export const confirmChangeEmail = (data) =>
   api.post('/user/confirm-change-email', data)
+
+export const changePassword = (data) =>
+  api.put('/user/change-password', data)
 
 // contests
 export const getUpcomingContests = () => api.get('/contests/upcoming')
@@ -87,6 +92,8 @@ export const triggerReminder = () => api.post('/admin/remind/trigger')
 
 // admin – site config
 export const getSiteConfig = () => api.get('/site-config')
+
+export const getAdminSiteConfig = () => api.get('/admin/site-config')
 
 export const saveSiteConfig = (data) => api.put('/admin/site-config', data)
 

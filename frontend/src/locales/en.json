@@ -33,7 +33,12 @@
     "passwordMismatch": "Passwords do not match",
     "invalidCredentials": "Invalid email or password",
     "invalidCode": "Invalid or expired verification code",
-    "emailRegistered": "Email already registered"
+    "emailRegistered": "Email already registered",
+    "registerDisabled": "Registration is currently disabled. New accounts cannot be created.",
+    "captcha": "Captcha",
+    "captchaRefresh": "Refresh",
+    "captchaPlaceholder": "Enter captcha",
+    "captchaRequired": "Please complete the captcha first"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -68,6 +73,13 @@
       "resend": "Resend Codes",
       "resendCooldown": "Resend ({{seconds}}s)",
       "success": "Email changed successfully"
+    },
+    "changePassword": {
+      "title": "Change Password",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password (min 8 characters)",
+      "confirmPassword": "Confirm New Password",
+      "success": "Password changed successfully"
     }
   },
   "admin": {
@@ -79,7 +91,8 @@
       "site": "Site Settings",
       "scheduler": "Schedule",
       "emailTemplate": "Email Templates",
-      "about": "About"
+      "about": "About",
+      "security": "Security"
     },
     "users": {
       "id": "ID",
@@ -173,6 +186,28 @@
       "subjectHint": "Subject placeholders:",
       "bodyHint": "HTML body placeholders:",
       "emptyFallback": "Leave blank to use system default"
+    },
+    "security": {
+      "registrationTitle": "Registration",
+      "allowRegister": "Allow User Registration",
+      "allowRegisterHelp": "When disabled, new users cannot register themselves (admin can still create accounts from the Users tab)",
+      "sessionTitle": "Session",
+      "sessionExpireDays": "Session Expiry (days)",
+      "sessionExpireDaysHelp": "JWT token lifetime in days. Changes apply to new logins.",
+      "captchaTitle": "CAPTCHA",
+      "captchaType": "Captcha Type",
+      "captchaTypeNone": "Disabled",
+      "captchaTypeBuiltin": "Built-in Image Captcha",
+      "captchaTypeTurnstile": "Cloudflare Turnstile",
+      "turnstileSiteKey": "Turnstile Site Key",
+      "turnstileSiteKeyHelp": "Obtain from Cloudflare Dashboard",
+      "turnstileSecretKey": "Turnstile Secret Key",
+      "turnstileSecretKeyHelp": "Server-side secret key. Leave blank to keep existing value.",
+      "captchaOnLabel": "Enable captcha on:",
+      "captchaOnRegister": "Registration (when sending verification code)",
+      "captchaOnLogin": "Login",
+      "captchaOnChangeEmail": "Change Email",
+      "saved": "Security settings saved"
     }
   },
   "common": {

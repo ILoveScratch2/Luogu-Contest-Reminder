@@ -3,6 +3,9 @@ import random
 import secrets
 import string
 import datetime
+import io
+import base64
+import uuid
 from contextlib import asynccontextmanager
 from typing import List, Optional
 
@@ -44,7 +47,72 @@ else:
         _f.write(SECRET_KEY)
 
 ALGORITHM = "HS256"
-TOKEN_EXPIRE_DAYS = 7
+TOKEN_EXPIRE_DAYS = 7  # fallback default
+
+# ──────────────────────────────────────────────────────────────
+# Built-in captcha store  {token: {"answer": str, "expires": datetime}}
+# ──────────────────────────────────────────────────────────────
+_CAPTCHA_STORE: dict = {}
+_CAPTCHA_TTL_MINUTES = 5
+
+
+def _clean_expired_captchas():
+    now = datetime.datetime.utcnow()
+    expired = [k for k, v in list(_CAPTCHA_STORE.items()) if v["expires"] < now]
+    for k in expired:
+        _CAPTCHA_STORE.pop(k, None)
+
+
+def _generate_captcha_image(text: str) -> str:
+    """Return captcha as base64 data URL (PNG via Pillow, SVG fallback)."""
+    try:
+        from PIL import Image, ImageDraw
+        width, height = 130, 44
+        img = Image.new("RGB", (width, height), color=(255, 255, 255))
+        draw = ImageDraw.Draw(img)
+        # noise lines
+        for _ in range(4):
+            x1 = random.randint(0, width); y1 = random.randint(0, height)
+            x2 = random.randint(0, width); y2 = random.randint(0, height)
+            c = (random.randint(160, 220), random.randint(160, 220), random.randint(160, 220))
+            draw.line([(x1, y1), (x2, y2)], fill=c, width=1)
+        # characters
+        cw = width // (len(text) + 1)
+        for i, ch in enumerate(text):
+            x = 8 + i * cw + random.randint(-3, 3)
+            y = random.randint(6, 16)
+            fill = (random.randint(20, 120), random.randint(20, 120), random.randint(20, 120))
+            draw.text((x, y), ch, fill=fill)
+        # noise dots
+        for _ in range(80):
+            draw.point(
+                (random.randint(0, width - 1), random.randint(0, height - 1)),
+                fill=(random.randint(120, 200), random.randint(120, 200), random.randint(120, 200)),
+            )
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode()
+        return f"data:image/png;base64,{b64}"
+    except Exception:
+        # SVG fallback
+        chars_svg = ""
+        for i, ch in enumerate(text):
+            x = 12 + i * 19
+            y = 22 + random.randint(-4, 4)
+            rot = random.randint(-20, 20)
+            r, g, b = random.randint(0, 100), random.randint(0, 100), random.randint(0, 100)
+            chars_svg += f'<text x="{x}" y="{y}" transform="rotate({rot},{x},{y})" fill="rgb({r},{g},{b})" font-size="18" font-weight="bold" font-family="monospace">{ch}</text>'
+        noise = "".join(
+            f'<circle cx="{random.randint(0,130)}" cy="{random.randint(0,44)}" r="1" fill="rgb({random.randint(100,200)},{random.randint(100,200)},{random.randint(100,200)})"/>'
+            for _ in range(30)
+        )
+        lines = "".join(
+            f'<line x1="{random.randint(0,130)}" y1="{random.randint(0,44)}" x2="{random.randint(0,130)}" y2="{random.randint(0,44)}" stroke="rgba(150,150,150,0.5)" stroke-width="1"/>'
+            for _ in range(3)
+        )
+        svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="130" height="44"><rect width="130" height="44" fill="white"/>{lines}{chars_svg}{noise}</svg>'
+        b64 = base64.b64encode(svg.encode()).decode()
+        return f"data:image/svg+xml;base64,{b64}"
 
 # ──────────────────────────────────────────────────────────────
 # App lifecycle
@@ -84,9 +152,53 @@ def verify_password(plain: str, hashed: str) -> bool:
     return _bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
-def create_token(user_id: int) -> str:
-    exp = datetime.datetime.utcnow() + datetime.timedelta(days=TOKEN_EXPIRE_DAYS)
+def create_token(user_id: int, expire_days: int = TOKEN_EXPIRE_DAYS) -> str:
+    exp = datetime.datetime.utcnow() + datetime.timedelta(days=expire_days)
     return jwt.encode({"sub": str(user_id), "exp": exp}, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def _get_expire_days(db: Session) -> int:
+    cfg = db.query(SiteConfig).first()
+    days = getattr(cfg, "session_expire_days", TOKEN_EXPIRE_DAYS) if cfg else TOKEN_EXPIRE_DAYS
+    return max(1, days or TOKEN_EXPIRE_DAYS)
+
+
+def _verify_captcha(captcha_type: str, captcha_token: Optional[str], captcha_answer: Optional[str], turnstile_secret: str = ""):
+    """Validate captcha. Raises HTTPException on failure."""
+    if captcha_type == "none":
+        return
+    if captcha_type == "builtin":
+        if not captcha_token or not captcha_answer:
+            raise HTTPException(status_code=400, detail="Captcha required")
+        _clean_expired_captchas()
+        entry = _CAPTCHA_STORE.get(captcha_token)
+        if not entry or entry["expires"] < datetime.datetime.utcnow():
+            _CAPTCHA_STORE.pop(captcha_token, None)
+            raise HTTPException(status_code=400, detail="Captcha expired or invalid")
+        if entry["answer"].lower() != (captcha_answer or "").lower():
+            _CAPTCHA_STORE.pop(captcha_token, None)
+            raise HTTPException(status_code=400, detail="Captcha answer incorrect")
+        _CAPTCHA_STORE.pop(captcha_token, None)  # one-time use
+        return
+    if captcha_type == "turnstile":
+        if not captcha_answer:
+            raise HTTPException(status_code=400, detail="Turnstile response required")
+        import urllib.request, urllib.parse, json as _json
+        try:
+            data = urllib.parse.urlencode({"secret": turnstile_secret, "response": captcha_answer}).encode()
+            req = urllib.request.Request(
+                "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+                data=data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                result = _json.loads(resp.read())
+            if not result.get("success"):
+                raise HTTPException(status_code=400, detail="Turnstile verification failed")
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(status_code=400, detail="Turnstile verification error")
 
 
 def get_current_user(
@@ -116,6 +228,8 @@ def require_root(current: User = Depends(get_current_user)) -> User:
 # ──────────────────────────────────────────────────────────────
 class SendCodeRequest(BaseModel):
     email: EmailStr
+    captcha_token: Optional[str] = None
+    captcha_answer: Optional[str] = None
 
 
 class RegisterRequest(BaseModel):
@@ -127,6 +241,8 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    captcha_token: Optional[str] = None
+    captcha_answer: Optional[str] = None
 
 
 class SettingsRequest(BaseModel):
@@ -166,10 +282,24 @@ class SmtpConfigRequest(BaseModel):
 
 
 class SiteConfigRequest(BaseModel):
-    site_title: str = "Luogu Contest Reminder"
-    primary_color: str = "#1976d2"
-    favicon_url: str = ""
-    contest_cache_ttl: int = 5
+    site_title: Optional[str] = None
+    primary_color: Optional[str] = None
+    favicon_url: Optional[str] = None
+    contest_cache_ttl: Optional[int] = None
+    # security / auth
+    allow_register: Optional[bool] = None
+    captcha_type: Optional[str] = None  # 'none' | 'builtin' | 'turnstile'
+    captcha_on_register: Optional[bool] = None
+    captcha_on_login: Optional[bool] = None
+    captcha_on_change_email: Optional[bool] = None
+    turnstile_site_key: Optional[str] = None
+    turnstile_secret_key: Optional[str] = None  # None = keep existing
+    session_expire_days: Optional[int] = None
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 class SchedulerConfigRequest(BaseModel):
@@ -183,6 +313,8 @@ class EmailTemplateRequest(BaseModel):
 
 class SendChangeEmailCodeRequest(BaseModel):
     new_email: EmailStr
+    captcha_token: Optional[str] = None
+    captcha_answer: Optional[str] = None
 
 
 class ConfirmChangeEmailRequest(BaseModel):
@@ -192,13 +324,40 @@ class ConfirmChangeEmailRequest(BaseModel):
 
 
 # Auth routes
+@app.get("/api/auth/captcha")
+def get_captcha():
+    """Generate a built-in image captcha. Returns token + base64 image."""
+    _clean_expired_captchas()
+    charset = string.ascii_uppercase.replace("O", "").replace("I", "") + string.digits.replace("0", "")
+    answer = "".join(random.choices(charset, k=5))
+    token = str(uuid.uuid4())
+    expires = datetime.datetime.utcnow() + datetime.timedelta(minutes=_CAPTCHA_TTL_MINUTES)
+    _CAPTCHA_STORE[token] = {"answer": answer, "expires": expires}
+    image = _generate_captcha_image(answer)
+    return {"token": token, "image": image}
+
+
 @app.post("/api/auth/send-code")
 def send_code(req: SendCodeRequest, db: Session = Depends(get_db)):
+    cfg = db.query(SiteConfig).first()
+    # registration allowed?
+    if cfg and not getattr(cfg, "allow_register", True):
+        raise HTTPException(status_code=403, detail="Registration is disabled")
+
     if not db.query(SmtpConfig).first():
         raise HTTPException(status_code=503, detail="SMTP not configured by admin yet")
 
     if db.query(User).filter(User.email == req.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    # captcha check
+    if cfg and getattr(cfg, "captcha_on_register", False):
+        _verify_captcha(
+            getattr(cfg, "captcha_type", "none"),
+            req.captcha_token,
+            req.captcha_answer,
+            getattr(cfg, "turnstile_secret_key", "") or "",
+        )
 
     # rate limit: 1 code per 60 seconds per email
     cutoff = datetime.datetime.utcnow() - datetime.timedelta(seconds=60)
@@ -258,19 +417,28 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    token = create_token(user.id)
+    token = create_token(user.id, _get_expire_days(db))
     return {"token": token, "user": _user_dict(user)}
 
 
 @app.post("/api/auth/login")
 def login(req: LoginRequest, db: Session = Depends(get_db)):
+    cfg = db.query(SiteConfig).first()
+    # captcha check
+    if cfg and getattr(cfg, "captcha_on_login", False):
+        _verify_captcha(
+            getattr(cfg, "captcha_type", "none"),
+            req.captcha_token,
+            req.captcha_answer,
+            getattr(cfg, "turnstile_secret_key", "") or "",
+        )
     user = db.query(User).filter(User.email == req.email).first()
     if not user or not verify_password(req.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabled")
 
-    token = create_token(user.id)
+    token = create_token(user.id, _get_expire_days(db))
     return {"token": token, "user": _user_dict(user)}
 
 
@@ -318,6 +486,24 @@ def delete_own_account(current: User = Depends(get_current_user), db: Session = 
     return {"message": "Account deleted"}
 
 
+@app.put("/api/user/change-password")
+def change_password(
+    req: ChangePasswordRequest,
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == current.id).first()
+    if not verify_password(req.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if len(req.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if req.current_password == req.new_password:
+        raise HTTPException(status_code=400, detail="New password must be different from current password")
+    user.password_hash = hash_password(req.new_password)
+    db.commit()
+    return {"message": "Password changed successfully"}
+
+
 @app.post("/api/user/send-change-email-code")
 def send_change_email_code(
     req: SendChangeEmailCodeRequest,
@@ -332,6 +518,16 @@ def send_change_email_code(
 
     if db.query(User).filter(User.email == req.new_email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    # captcha check
+    cfg = db.query(SiteConfig).first()
+    if cfg and getattr(cfg, "captcha_on_change_email", False):
+        _verify_captcha(
+            getattr(cfg, "captcha_type", "none"),
+            req.captcha_token,
+            req.captcha_answer,
+            getattr(cfg, "turnstile_secret_key", "") or "",
+        )
 
     # rate limit: 1 code per 60 seconds per email address
     cutoff = datetime.datetime.utcnow() - datetime.timedelta(seconds=60)
@@ -667,8 +863,36 @@ def update_email_template(
 def get_site_config(db: Session = Depends(get_db)):
     cfg = db.query(SiteConfig).first()
     if not cfg:
-        return {"site_title": "Luogu Contest Reminder", "primary_color": "#1976d2", "favicon_url": "", "contest_cache_ttl": 5}
-    return {"site_title": cfg.site_title, "primary_color": cfg.primary_color, "favicon_url": cfg.favicon_url, "contest_cache_ttl": cfg.contest_cache_ttl if cfg.contest_cache_ttl is not None else 5}
+        return {
+            "site_title": "Luogu Contest Reminder", "primary_color": "#1976d2",
+            "favicon_url": "", "contest_cache_ttl": 5,
+            "allow_register": True, "captcha_type": "none",
+            "captcha_on_register": False, "captcha_on_login": False,
+            "captcha_on_change_email": False, "turnstile_site_key": "",
+            "session_expire_days": 7,
+        }
+    return {
+        "site_title": cfg.site_title,
+        "primary_color": cfg.primary_color,
+        "favicon_url": cfg.favicon_url,
+        "contest_cache_ttl": cfg.contest_cache_ttl if cfg.contest_cache_ttl is not None else 5,
+        "allow_register": getattr(cfg, "allow_register", True),
+        "captcha_type": getattr(cfg, "captcha_type", "none"),
+        "captcha_on_register": getattr(cfg, "captcha_on_register", False),
+        "captcha_on_login": getattr(cfg, "captcha_on_login", False),
+        "captcha_on_change_email": getattr(cfg, "captcha_on_change_email", False),
+        "turnstile_site_key": getattr(cfg, "turnstile_site_key", ""),
+        "session_expire_days": getattr(cfg, "session_expire_days", 7),
+    }
+
+
+@app.get("/api/admin/site-config")
+def get_admin_site_config(root: User = Depends(require_root), db: Session = Depends(get_db)):
+    """Admin-only: returns all site config including turnstile secret."""
+    cfg = db.query(SiteConfig).first()
+    base = get_site_config(db)
+    base["turnstile_secret_key"] = getattr(cfg, "turnstile_secret_key", "") if cfg else ""
+    return base
 
 
 @app.put("/api/admin/site-config")
@@ -678,25 +902,34 @@ def update_site_config(
     db: Session = Depends(get_db),
 ):
     import re
-    if not re.match(r'^#[0-9A-Fa-f]{6}$', req.primary_color):
+    if req.primary_color is not None and not re.match(r'^#[0-9A-Fa-f]{6}$', req.primary_color):
         raise HTTPException(status_code=400, detail="Invalid color format, expected #rrggbb")
-    if req.contest_cache_ttl < 0:
+    if req.contest_cache_ttl is not None and req.contest_cache_ttl < 0:
         raise HTTPException(status_code=400, detail="Cache TTL must be >= 0")
+    if req.captcha_type is not None and req.captcha_type not in ("none", "builtin", "turnstile"):
+        raise HTTPException(status_code=400, detail="Invalid captcha_type")
+    if req.session_expire_days is not None and req.session_expire_days < 1:
+        raise HTTPException(status_code=400, detail="session_expire_days must be >= 1")
+
     cfg = db.query(SiteConfig).first()
-    if cfg:
-        cfg.site_title = req.site_title
-        cfg.primary_color = req.primary_color
-        cfg.favicon_url = req.favicon_url
-        cfg.contest_cache_ttl = req.contest_cache_ttl
-        cfg.updated_at = datetime.datetime.utcnow()
-    else:
-        cfg = SiteConfig(
-            site_title=req.site_title,
-            primary_color=req.primary_color,
-            favicon_url=req.favicon_url,
-            contest_cache_ttl=req.contest_cache_ttl,
-        )
+    if not cfg:
+        cfg = SiteConfig()
         db.add(cfg)
+
+    if req.site_title is not None: cfg.site_title = req.site_title
+    if req.primary_color is not None: cfg.primary_color = req.primary_color
+    if req.favicon_url is not None: cfg.favicon_url = req.favicon_url
+    if req.contest_cache_ttl is not None: cfg.contest_cache_ttl = req.contest_cache_ttl
+    if req.allow_register is not None: cfg.allow_register = req.allow_register
+    if req.captcha_type is not None: cfg.captcha_type = req.captcha_type
+    if req.captcha_on_register is not None: cfg.captcha_on_register = req.captcha_on_register
+    if req.captcha_on_login is not None: cfg.captcha_on_login = req.captcha_on_login
+    if req.captcha_on_change_email is not None: cfg.captcha_on_change_email = req.captcha_on_change_email
+    if req.turnstile_site_key is not None: cfg.turnstile_site_key = req.turnstile_site_key
+    if req.turnstile_secret_key is not None: cfg.turnstile_secret_key = req.turnstile_secret_key
+    if req.session_expire_days is not None: cfg.session_expire_days = req.session_expire_days
+    cfg.updated_at = datetime.datetime.utcnow()
+
     db.commit()
     return {"message": "Site config saved"}
 

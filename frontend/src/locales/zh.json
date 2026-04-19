@@ -33,7 +33,12 @@
     "passwordMismatch": "两次密码输入不一致",
     "invalidCredentials": "邮箱或密码错误",
     "invalidCode": "验证码无效或已过期",
-    "emailRegistered": "该邮箱已被注册"
+    "emailRegistered": "该邮箱已被注册",
+    "registerDisabled": "当前站点已关闭注册，无法创建新账号。",
+    "captcha": "图形验证码",
+    "captchaRefresh": "换一张",
+    "captchaPlaceholder": "输入验证码",
+    "captchaRequired": "请先完成验证码验证"
   },
   "dashboard": {
     "title": "控制台",
@@ -68,6 +73,13 @@
       "resend": "重新发送验证码",
       "resendCooldown": "重新发送（{{seconds}}s）",
       "success": "邮箱已成功更换"
+    },
+    "changePassword": {
+      "title": "修改密码",
+      "currentPassword": "当前密码",
+      "newPassword": "新密码（至少 8 位）",
+      "confirmPassword": "确认新密码",
+      "success": "密码已修改成功"
     }
   },
   "admin": {
@@ -79,7 +91,8 @@
       "site": "站点设置",
       "scheduler": "调度配置",
       "emailTemplate": "邮件模板",
-      "about": "关于"
+      "about": "关于",
+      "security": "安全设置"
     },
     "users": {
       "id": "ID",
@@ -173,6 +186,28 @@
       "subjectHint": "主题可用：",
       "bodyHint": "HTML 正文可用：",
       "emptyFallback": "留空则使用系统默认"
+    },
+    "security": {
+      "registrationTitle": "注册设置",
+      "allowRegister": "允许用户注册",
+      "allowRegisterHelp": "关闭后，新用户无法自行注册账号（管理员在后台创建账号不受影响）",
+      "sessionTitle": "会话设置",
+      "sessionExpireDays": "会话有效期（天）",
+      "sessionExpireDaysHelp": "登录 Token 的有效天数，修改后对新登录的会话生效",
+      "captchaTitle": "人机验证（验证码）",
+      "captchaType": "验证码类型",
+      "captchaTypeNone": "关闭",
+      "captchaTypeBuiltin": "内置图形验证码",
+      "captchaTypeTurnstile": "Cloudflare Turnstile",
+      "turnstileSiteKey": "Turnstile Site Key",
+      "turnstileSiteKeyHelp": "从 Cloudflare Dashboard 获取",
+      "turnstileSecretKey": "Turnstile Secret Key",
+      "turnstileSecretKeyHelp": "服务端密钥，留空则保持现有值",
+      "captchaOnLabel": "在以下场景启用验证码：",
+      "captchaOnRegister": "注册（发送验证码时）",
+      "captchaOnLogin": "登录",
+      "captchaOnChangeEmail": "换绑邮箱",
+      "saved": "安全设置已保存"
     }
   },
   "common": {

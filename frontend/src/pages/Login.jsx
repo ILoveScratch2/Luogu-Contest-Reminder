@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import {
@@ -21,6 +21,7 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useSiteConfig } from '../contexts/SiteConfigContext.jsx'
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
 import Footer from '../components/Footer.jsx'
+import CaptchaWidget from '../components/CaptchaWidget.jsx'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -33,13 +34,27 @@ export default function Login() {
   const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [captchaValue, setCaptchaValue] = useState({ captcha_token: '', captcha_answer: '' })
+
+  const captchaType = config.captcha_on_login ? (config.captcha_type || 'none') : 'none'
+  const turnstileSiteKey = config.turnstile_site_key || ''
+
+  const handleCaptchaChange = useCallback((val) => setCaptchaValue(val), [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    if (captchaType !== 'none' && !captchaValue.captcha_answer) {
+      setError(t('auth.captchaRequired')); return
+    }
     setLoading(true)
     try {
-      const { data } = await loginApi({ email, password })
+      const { data } = await loginApi({
+        email,
+        password,
+        captchaToken: captchaValue.captcha_token,
+        captchaAnswer: captchaValue.captcha_answer,
+      })
       login(data.token, data.user)
       navigate('/dashboard', { replace: true })
     } catch (err) {
@@ -106,7 +121,7 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              sx={{ mb: 3 }}
+              sx={{ mb: captchaType !== 'none' ? 2 : 3 }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -117,6 +132,15 @@ export default function Login() {
                 ),
               }}
             />
+            {captchaType !== 'none' && (
+              <Box sx={{ mb: 3 }}>
+                <CaptchaWidget
+                  captchaType={captchaType}
+                  turnstileSiteKey={turnstileSiteKey}
+                  onChange={handleCaptchaChange}
+                />
+              </Box>
+            )}
             <Button
               type="submit"
               variant="contained"
@@ -140,3 +164,4 @@ export default function Login() {
     </Box>
   )
 }
+
