@@ -68,9 +68,14 @@ jobs:
           --onefile
           --name luogu-contest-reminder-${{ matrix.platform }}
           --collect-all uvicorn
+          --collect-all starlette
+          --collect-all fastapi
           --hidden-import sqlalchemy.dialects.sqlite
           --hidden-import email_validator
+          --hidden-import jose
           --hidden-import jose.backends
+          --hidden-import passlib
+          --hidden-import multipart
           main.py
 
       - name: Upload artifact
