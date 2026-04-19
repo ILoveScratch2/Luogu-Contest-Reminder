@@ -305,7 +305,7 @@ function UsersTab({ t }) {
 
 // smtp tab
 function SmtpTab({ t }) {
-  const [form, setForm] = useState({ host: '', port: 587, username: '', password: '', from_email: '', from_name: 'Luogu Contest Reminder', use_tls: true })
+  const [form, setForm] = useState({ host: '', port: 587, username: '', password: '', from_email: '', from_name: 'Luogu Contest Reminder', use_tls: true, retry_enabled: true, retry_max_attempts: 3, retry_interval: 30, bcc_batch_size: 100 })
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -367,7 +367,49 @@ function SmtpTab({ t }) {
       <FormControlLabel
         control={<Switch checked={form.use_tls} onChange={setCheck('use_tls')} />}
         label={t('admin.smtp.useTls')}
-        sx={{ mb: 2 }}
+        sx={{ mb: 2, display: 'block' }}
+      />
+      <Divider sx={{ my: 2 }} />
+      <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+        {t('admin.smtp.retryTitle')}
+      </Typography>
+      <FormControlLabel
+        control={<Switch checked={form.retry_enabled} onChange={setCheck('retry_enabled')} />}
+        label={t('admin.smtp.retryEnabled')}
+        sx={{ mb: 2, display: 'block' }}
+      />
+      {form.retry_enabled && (
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
+          <TextField
+            label={t('admin.smtp.retryMaxAttempts')}
+            type="number"
+            value={form.retry_max_attempts}
+            onChange={set('retry_max_attempts')}
+            inputProps={{ min: 1, max: 10 }}
+            helperText={t('admin.smtp.retryMaxAttemptsHelp')}
+          />
+          <TextField
+            label={t('admin.smtp.retryInterval')}
+            type="number"
+            value={form.retry_interval}
+            onChange={set('retry_interval')}
+            inputProps={{ min: 5 }}
+            helperText={t('admin.smtp.retryIntervalHelp')}
+          />
+        </Box>
+      )}
+      <Divider sx={{ my: 2 }} />
+      <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+        {t('admin.smtp.bccBatchTitle')}
+      </Typography>
+      <TextField
+        label={t('admin.smtp.bccBatchSize')}
+        type="number"
+        value={form.bcc_batch_size}
+        onChange={set('bcc_batch_size')}
+        inputProps={{ min: 0 }}
+        helperText={t('admin.smtp.bccBatchSizeHelp')}
+        sx={{ mb: 2, maxWidth: 280 }}
       />
       <Box sx={{ display: 'flex', gap: 2 }}>
         <Button variant="contained" onClick={handleSave} disabled={saving}>

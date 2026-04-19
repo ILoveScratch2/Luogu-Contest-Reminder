@@ -34,6 +34,10 @@ class SmtpConfig(Base):
     from_email = Column(String, nullable=False)
     from_name = Column(String, default="Luogu Contest Reminder")
     use_tls = Column(Boolean, default=True)
+    retry_enabled = Column(Boolean, default=True, nullable=False)
+    retry_max_attempts = Column(Integer, default=3, nullable=False)
+    retry_interval = Column(Integer, default=30, nullable=False)
+    bcc_batch_size = Column(Integer, default=100, nullable=False)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
@@ -100,5 +104,29 @@ def init_db():
         if "contest_cache_ttl" not in existing:
             conn.execute(__import__('sqlalchemy').text(
                 "ALTER TABLE site_config ADD COLUMN contest_cache_ttl INTEGER NOT NULL DEFAULT 5"
+            ))
+            conn.commit()
+        # Migrate smtp_config
+        existing_smtp = [row[1] for row in conn.execute(
+            __import__('sqlalchemy').text("PRAGMA table_info(smtp_config)")
+        )]
+        if "retry_enabled" not in existing_smtp:
+            conn.execute(__import__('sqlalchemy').text(
+                "ALTER TABLE smtp_config ADD COLUMN retry_enabled BOOLEAN NOT NULL DEFAULT 1"
+            ))
+            conn.commit()
+        if "retry_max_attempts" not in existing_smtp:
+            conn.execute(__import__('sqlalchemy').text(
+                "ALTER TABLE smtp_config ADD COLUMN retry_max_attempts INTEGER NOT NULL DEFAULT 3"
+            ))
+            conn.commit()
+        if "retry_interval" not in existing_smtp:
+            conn.execute(__import__('sqlalchemy').text(
+                "ALTER TABLE smtp_config ADD COLUMN retry_interval INTEGER NOT NULL DEFAULT 30"
+            ))
+            conn.commit()
+        if "bcc_batch_size" not in existing_smtp:
+            conn.execute(__import__('sqlalchemy').text(
+                "ALTER TABLE smtp_config ADD COLUMN bcc_batch_size INTEGER NOT NULL DEFAULT 100"
             ))
             conn.commit()

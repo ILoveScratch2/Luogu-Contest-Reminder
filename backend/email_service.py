@@ -1,10 +1,11 @@
 import smtplib
 import ssl
+import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
 from datetime import datetime, timezone, timedelta
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from sqlalchemy.orm import Session
 from database import SmtpConfig
@@ -40,8 +41,8 @@ def _get_primary_color(db: Session) -> str:
     return '#1976d2'
 
 
-DEFAULT_VERIFICATION_SUBJECT = "Luogu Contest Reminder — Email Verification"
-DEFAULT_REMINDER_SUBJECT = "Luogu Contest Reminder: {{count}} Contest(s) Starting Soon"
+DEFAULT_VERIFICATION_SUBJECT = "Luogu Contest Reminder — 邮件验证码"
+DEFAULT_REMINDER_SUBJECT = "Luogu Contest Reminder: {{count}} 场比赛即将开始"
 
 # Placeholders for verification: {{code}}, {{primary_color}}, {{dark_color}}, {{site_title}}
 DEFAULT_VERIFICATION_HTML = """\
@@ -147,28 +148,45 @@ def _get_custom_template(db: Session, tpl_type: str):
     return None, None
 
 
-def _send(config: SmtpConfig, to_email: str, subject: str, html: str) -> bool:
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = formataddr((config.from_name, config.from_email))
-        msg["To"] = to_email
-        msg.attach(MIMEText(html, "html", "utf-8"))
+def _send(config: SmtpConfig, to_emails: Union[str, List[str]], subject: str, html: str) -> bool:
+    if isinstance(to_emails, str):
+        to_emails = [to_emails]
 
-        if config.use_tls:
-            ctx = ssl.create_default_context()
-            with smtplib.SMTP(config.host, config.port, timeout=15) as srv:
-                srv.starttls(context=ctx)
-                srv.login(config.username, config.password)
-                srv.sendmail(config.from_email, to_email, msg.as_string())
-        else:
-            with smtplib.SMTP_SSL(config.host, config.port, timeout=15) as srv:
-                srv.login(config.username, config.password)
-                srv.sendmail(config.from_email, to_email, msg.as_string())
-        return True
-    except Exception as e:
-        print(f"[email] 发送失败 -> {to_email}: {e}")
-        return False
+    retry_enabled = getattr(config, 'retry_enabled', True)
+    retry_max_attempts = getattr(config, 'retry_max_attempts', 3)
+    retry_interval = getattr(config, 'retry_interval', 30)
+    max_tries = (retry_max_attempts + 1) if retry_enabled else 1
+
+    for attempt in range(max_tries):
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = formataddr((config.from_name, config.from_email))
+            # Use BCC: single rec shown in To, multiple rec use undisclosed-recipients
+            if len(to_emails) == 1:
+                msg["To"] = to_emails[0]
+            else:
+                msg["To"] = "undisclosed-recipients:;"
+            msg.attach(MIMEText(html, "html", "utf-8"))
+
+            if config.use_tls:
+                ctx = ssl.create_default_context()
+                with smtplib.SMTP(config.host, config.port, timeout=15) as srv:
+                    srv.starttls(context=ctx)
+                    srv.login(config.username, config.password)
+                    srv.sendmail(config.from_email, to_emails, msg.as_string())
+            else:
+                with smtplib.SMTP_SSL(config.host, config.port, timeout=15) as srv:
+                    srv.login(config.username, config.password)
+                    srv.sendmail(config.from_email, to_emails, msg.as_string())
+            return True
+        except Exception as e:
+            if attempt < max_tries - 1:
+                print(f"[email] 发送失败 (第 {attempt + 1}/{max_tries} 次): {e}，将在 {retry_interval}s 后重试")
+                time.sleep(retry_interval)
+            else:
+                print(f"[email] 发送失败 (第 {attempt + 1}/{max_tries} 次): {e}")
+    return False
 
 
 # API
@@ -213,7 +231,7 @@ def send_verification_email(db: Session, to_email: str, code: str) -> bool:
 
 def send_contest_reminder(
     db: Session,
-    to_email: str,
+    to_emails: Union[str, List[str]],
     contests: list,
     include_body: bool = False,
 ) -> bool:
@@ -287,7 +305,7 @@ def send_contest_reminder(
         "dark_color": dark,
         "site_title": site_title,
     })
-    return _send(config, to_email, subject, html)
+    return _send(config, to_emails, subject, html)
 
 
 def send_change_email_verification(db: Session, to_email: str, code: str, is_new_email: bool) -> bool:

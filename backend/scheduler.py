@@ -1,7 +1,7 @@
 import json
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from database import SessionLocal, User, SentReminder, SchedulerConfig, SiteConfig
+from database import SessionLocal, User, SentReminder, SchedulerConfig, SiteConfig, SmtpConfig
 from email_service import send_contest_reminder
 from fetch_contest import get_upcoming_contests, fetch_contest_detail
 
@@ -26,7 +26,10 @@ def run_reminder_job():
             .all()
         )
 
-        sent_count = 0
+        # Group users by (frozenset of unsent contest IDs, include_body flag)
+        # so each group gets exactly one BCC email with shared content.
+        groups: dict = {}  # key -> {"users": [...], "contests": [...], "include_body": bool}
+
         for user in users:
             reminded_ids = {
                 r.contest_id
@@ -38,20 +41,45 @@ def run_reminder_job():
             if not unsent:
                 continue
 
-            if user.send_contest_body:
-                for c in unsent:
+            key = (frozenset(c["id"] for c in unsent), user.send_contest_body)
+            if key not in groups:
+                groups[key] = {"users": [], "contests": unsent, "include_body": user.send_contest_body}
+            groups[key]["users"].append(user)
+
+        # Fetch contest descriptions for groups that need them
+        for group_data in groups.values():
+            if group_data["include_body"]:
+                for c in group_data["contests"]:
                     if not c.get("description"):
                         detail = fetch_contest_detail(c["id"])
                         if detail:
                             c["description"] = detail.get("description", "")
 
-            success = send_contest_reminder(db, user.email, unsent, user.send_contest_body)
-            if success:
-                for c in unsent:
-                    db.add(SentReminder(user_id=user.id, contest_id=c["id"]))
-                db.commit()
-                sent_count += 1
-                print(f"[scheduler] Sent reminder to {user.email}")
+        sent_count = 0
+        smtp_cfg = db.query(SmtpConfig).first()
+        bcc_batch_size = getattr(smtp_cfg, 'bcc_batch_size', 100) if smtp_cfg else 100
+
+        for group_data in groups.values():
+            emails = [u.email for u in group_data["users"]]
+            # Split into batches; bcc_batch_size=0 means no limit (single batch)
+            if bcc_batch_size and bcc_batch_size > 0:
+                batches = [emails[i:i + bcc_batch_size] for i in range(0, len(emails), bcc_batch_size)]
+            else:
+                batches = [emails]
+
+            batch_users_map = {u.email: u for u in group_data["users"]}
+            for batch in batches:
+                success = send_contest_reminder(
+                    db, batch, group_data["contests"], group_data["include_body"]
+                )
+                if success:
+                    for email in batch:
+                        user = batch_users_map[email]
+                        for c in group_data["contests"]:
+                            db.add(SentReminder(user_id=user.id, contest_id=c["id"]))
+                    db.commit()
+                    sent_count += len(batch)
+                    print(f"[scheduler] BCC 发送提醒至 {len(batch)} 位用户（共 {len(emails)} 位）")
 
         print(f"[scheduler] Done. Reminded {sent_count} user(s).")
     except Exception as exc:

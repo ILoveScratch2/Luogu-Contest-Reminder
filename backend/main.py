@@ -159,6 +159,10 @@ class SmtpConfigRequest(BaseModel):
     from_email: EmailStr
     from_name: str = "Luogu Contest Reminder"
     use_tls: bool = True
+    retry_enabled: bool = True
+    retry_max_attempts: int = 3
+    retry_interval: int = 30
+    bcc_batch_size: int = 100
 
 
 class SiteConfigRequest(BaseModel):
@@ -505,6 +509,10 @@ def get_smtp(root: User = Depends(require_root), db: Session = Depends(get_db)):
         "from_email": cfg.from_email,
         "from_name": cfg.from_name,
         "use_tls": cfg.use_tls,
+        "retry_enabled": getattr(cfg, 'retry_enabled', True),
+        "retry_max_attempts": getattr(cfg, 'retry_max_attempts', 3),
+        "retry_interval": getattr(cfg, 'retry_interval', 30),
+        "bcc_batch_size": getattr(cfg, 'bcc_batch_size', 100),
         # no password
     }
 
@@ -525,6 +533,10 @@ def update_smtp(
         cfg.from_email = req.from_email
         cfg.from_name = req.from_name
         cfg.use_tls = req.use_tls
+        cfg.retry_enabled = req.retry_enabled
+        cfg.retry_max_attempts = req.retry_max_attempts
+        cfg.retry_interval = req.retry_interval
+        cfg.bcc_batch_size = req.bcc_batch_size
         cfg.updated_at = datetime.datetime.utcnow()
     else:
         if not req.password:
@@ -537,6 +549,10 @@ def update_smtp(
             from_email=req.from_email,
             from_name=req.from_name,
             use_tls=req.use_tls,
+            retry_enabled=req.retry_enabled,
+            retry_max_attempts=req.retry_max_attempts,
+            retry_interval=req.retry_interval,
+            bcc_batch_size=req.bcc_batch_size,
         )
         db.add(cfg)
     db.commit()
