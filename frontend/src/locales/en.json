@@ -78,7 +78,8 @@
       "system": "System",
       "site": "Site Settings",
       "scheduler": "Schedule",
-      "emailTemplate": "Email Templates"
+      "emailTemplate": "Email Templates",
+      "about": "About"
     },
     "users": {
       "id": "ID",

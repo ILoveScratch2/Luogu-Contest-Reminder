@@ -1,11 +1,9 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Box, Link, Typography } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
 
 export default function Footer() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
 
   return (
     <Box
@@ -28,15 +26,6 @@ export default function Footer() {
           sx={{ fontWeight: 600 }}
         >
           Luogu-Contest-Reminder
-        </Link>
-        {' · '}
-        <Link
-          component="span"
-          underline="hover"
-          sx={{ cursor: 'pointer' }}
-          onClick={() => navigate('/about')}
-        >
-          {t('nav.about')}
         </Link>
       </Typography>
     </Box>

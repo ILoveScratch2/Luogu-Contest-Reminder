@@ -78,7 +78,8 @@
       "system": "系统操作",
       "site": "站点设置",
       "scheduler": "调度配置",
-      "emailTemplate": "邮件模板"
+      "emailTemplate": "邮件模板",
+      "about": "关于"
     },
     "users": {
       "id": "ID",

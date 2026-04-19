@@ -14,7 +14,6 @@ import {
 } from '@mui/material'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import DashboardIcon from '@mui/icons-material/Dashboard'
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useSiteConfig } from '../contexts/SiteConfigContext.jsx'
@@ -67,15 +66,6 @@ export default function Layout({ children, maxWidth = 'lg' }) {
               {t('nav.admin')}
             </Button>
           )}
-
-          <Button
-            color="inherit"
-            startIcon={<InfoOutlinedIcon />}
-            onClick={() => navigate('/about')}
-            sx={{ mr: 1 }}
-          >
-            {t('nav.about')}
-          </Button>
 
           <LanguageSwitcher sx={{ mr: 1, color: 'inherit' }} />
 

@@ -16,7 +16,9 @@ import {
   Divider,
   FormControlLabel,
   IconButton,
+  Link,
   Snackbar,
+  Stack,
   Switch,
   Tab,
   Table,
@@ -33,10 +35,12 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
+import GitHubIcon from '@mui/icons-material/GitHub'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import {
   createUser,
   deleteUser,
+  getAbout,
   getEmailTemplate,
   getScheduler,
   getSmtp,
@@ -813,6 +817,90 @@ function SiteConfigTab({ t }) {
   )
 }
 
+// about tab
+const REPO = 'https://github.com/ILoveScratch2/Luogu-Contest-Reminder'
+/* global __APP_VERSION__ */
+
+function AboutTab({ t }) {
+  const [info, setInfo] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getAbout()
+      .then(({ data }) => setInfo(data))
+      .catch(() => setInfo(null))
+      .finally(() => setLoading(false))
+  }, [])
+
+  return (
+    <Box>
+      <Box sx={{ textAlign: 'center', mb: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          {t('app.title')}
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+          {t('about.description')}
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<GitHubIcon />}
+          href={REPO}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t('about.repository')}
+        </Button>
+      </Box>
+
+      <Card variant="outlined" sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            {t('about.title')}
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : info ? (
+            <Stack spacing={1.5}>
+              <InfoRow label={t('about.frontendVersion')} value={__APP_VERSION__} />
+              <InfoRow label={t('about.backendVersion')} value={info.backend?.version} />
+              <InfoRow label={t('about.pythonVersion')} value={info.backend?.python} />
+              <InfoRow label={t('about.fastapiVersion')} value={info.backend?.fastapi} />
+              <InfoRow
+                label={t('about.license')}
+                value={
+                  <Link href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer" underline="hover">
+                    {info.license}
+                  </Link>
+                }
+              />
+            </Stack>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              {t('about.loading')}
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
+    </Box>
+  )
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Typography variant="body2" color="text.secondary">
+        {label}
+      </Typography>
+      <Typography variant="body2" fontWeight={500}>
+        {value ?? '—'}
+      </Typography>
+    </Box>
+  )
+}
+
 // admin page
 export default function Admin() {
   const { t } = useTranslation()
@@ -833,6 +921,7 @@ export default function Admin() {
             <Tab label={t('admin.tabs.site')} />
             <Tab label={t('admin.tabs.scheduler')} />
             <Tab label={t('admin.tabs.emailTemplate')} />
+            <Tab label={t('admin.tabs.about')} />
           </Tabs>
         </Box>
 
@@ -844,6 +933,7 @@ export default function Admin() {
           {tab === 3 && <SiteConfigTab t={t} />}
           {tab === 4 && <SchedulerTab t={t} />}
           {tab === 5 && <EmailTemplatesTab t={t} />}
+          {tab === 6 && <AboutTab t={t} />}
         </CardContent>
       </Card>
     </Layout>
