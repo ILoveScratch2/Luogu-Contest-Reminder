@@ -6,12 +6,14 @@ import datetime
 import io
 import base64
 import uuid
+import sys
 from contextlib import asynccontextmanager
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.staticfiles import StaticFiles
 import bcrypt as _bcrypt
 from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr
@@ -960,7 +962,13 @@ def upcoming_contests(current: User = Depends(get_current_user), db: Session = D
     return get_upcoming_contests(24, ttl) or []
 
 
-# entry 
+# Static files (SPA frontend)
+_base_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+_static_dir = os.path.join(_base_dir, "static")
+if os.path.isdir(_static_dir):
+    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
+
+# entry
 if __name__ == "__main__":
     import getpass
     import uvicorn
