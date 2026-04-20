@@ -165,6 +165,20 @@ def _get_expire_days(db: Session) -> int:
     return max(1, days or TOKEN_EXPIRE_DAYS)
 
 
+def _is_disposable_email(email: str) -> bool:
+    """Return True if the email domain is known to be a disposable/temporary address."""
+    import urllib.request as _urllib_req
+    try:
+        domain = email.rsplit("@", 1)[-1].lower()
+        url = f"https://disposablemail.io/domain/{domain}"
+        req = _urllib_req.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with _urllib_req.urlopen(req, timeout=10) as resp:
+            text = resp.read().decode("utf-8", errors="replace")
+        return "is a temporary email address" in text
+    except Exception:
+        return False
+
+
 def _verify_captcha(captcha_type: str, captcha_token: Optional[str], captcha_answer: Optional[str], turnstile_secret: str = ""):
     """Validate captcha. Raises HTTPException on failure."""
     if captcha_type == "none":
@@ -297,6 +311,7 @@ class SiteConfigRequest(BaseModel):
     turnstile_site_key: Optional[str] = None
     turnstile_secret_key: Optional[str] = None  # None = keep existing
     session_expire_days: Optional[int] = None
+    block_disposable_email: Optional[bool] = None
 
 
 class ChangePasswordRequest(BaseModel):
@@ -360,6 +375,11 @@ def send_code(req: SendCodeRequest, db: Session = Depends(get_db)):
             req.captcha_answer,
             getattr(cfg, "turnstile_secret_key", "") or "",
         )
+
+    # disposable email check
+    if cfg and getattr(cfg, "block_disposable_email", False):
+        if _is_disposable_email(req.email):
+            raise HTTPException(status_code=400, detail="Disposable email addresses are not allowed")
 
     # rate limit: 1 code per 60 seconds per email
     cutoff = datetime.datetime.utcnow() - datetime.timedelta(seconds=60)
@@ -871,7 +891,7 @@ def get_site_config(db: Session = Depends(get_db)):
             "allow_register": True, "captcha_type": "none",
             "captcha_on_register": False, "captcha_on_login": False,
             "captcha_on_change_email": False, "turnstile_site_key": "",
-            "session_expire_days": 7,
+            "session_expire_days": 7, "block_disposable_email": False,
         }
     return {
         "site_title": cfg.site_title,
@@ -885,6 +905,7 @@ def get_site_config(db: Session = Depends(get_db)):
         "captcha_on_change_email": getattr(cfg, "captcha_on_change_email", False),
         "turnstile_site_key": getattr(cfg, "turnstile_site_key", ""),
         "session_expire_days": getattr(cfg, "session_expire_days", 7),
+        "block_disposable_email": getattr(cfg, "block_disposable_email", False),
     }
 
 
@@ -930,6 +951,7 @@ def update_site_config(
     if req.turnstile_site_key is not None: cfg.turnstile_site_key = req.turnstile_site_key
     if req.turnstile_secret_key is not None: cfg.turnstile_secret_key = req.turnstile_secret_key
     if req.session_expire_days is not None: cfg.session_expire_days = req.session_expire_days
+    if req.block_disposable_email is not None: cfg.block_disposable_email = req.block_disposable_email
     cfg.updated_at = datetime.datetime.utcnow()
 
     db.commit()

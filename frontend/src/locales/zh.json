@@ -191,6 +191,8 @@
       "registrationTitle": "注册设置",
       "allowRegister": "允许用户注册",
       "allowRegisterHelp": "关闭后，新用户无法自行注册账号（管理员在后台创建账号不受影响）",
+      "blockDisposableEmail": "阻止临时邮箱地址",
+      "blockDisposableEmailHelp": "开启后，发送注册验证码时将通过 disposablemail.io 检测临时/一次性邮箱，检测到则拒绝发送",
       "sessionTitle": "会话设置",
       "sessionExpireDays": "会话有效期（天）",
       "sessionExpireDaysHelp": "登录 Token 的有效天数，修改后对新登录的会话生效",

@@ -76,6 +76,7 @@ class SiteConfig(Base):
     turnstile_site_key = Column(String, default="", nullable=False)
     turnstile_secret_key = Column(String, default="", nullable=False)
     session_expire_days = Column(Integer, default=7, nullable=False)
+    block_disposable_email = Column(Boolean, default=False, nullable=False)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
@@ -153,6 +154,7 @@ def init_db():
             ("turnstile_secret_key", "VARCHAR NOT NULL DEFAULT ''"),
             ("session_expire_days", "INTEGER NOT NULL DEFAULT 7"),
         ]
+        _site_migrations.append(("block_disposable_email", "BOOLEAN NOT NULL DEFAULT 0"))
         for col, col_def in _site_migrations:
             if col not in existing_site:
                 conn.execute(__import__('sqlalchemy').text(

@@ -191,6 +191,8 @@
       "registrationTitle": "Registration",
       "allowRegister": "Allow User Registration",
       "allowRegisterHelp": "When disabled, new users cannot register themselves (admin can still create accounts from the Users tab)",
+      "blockDisposableEmail": "Block Disposable Email Addresses",
+      "blockDisposableEmailHelp": "When enabled, disposable/temporary email addresses are checked via disposablemail.io and rejected when sending verification codes",
       "sessionTitle": "Session",
       "sessionExpireDays": "Session Expiry (days)",
       "sessionExpireDaysHelp": "JWT token lifetime in days. Changes apply to new logins.",

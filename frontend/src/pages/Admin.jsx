@@ -831,6 +831,7 @@ function SecurityTab({ t }) {
     turnstile_site_key: '',
     turnstile_secret_key: '',
     session_expire_days: 7,
+    block_disposable_email: false,
   })
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -851,6 +852,7 @@ function SecurityTab({ t }) {
             turnstile_site_key: data.turnstile_site_key || '',
             turnstile_secret_key: data.turnstile_secret_key || '',
             session_expire_days: data.session_expire_days ?? 7,
+            block_disposable_email: data.block_disposable_email ?? false,
           })
         }
         setLoaded(true)
@@ -888,6 +890,14 @@ function SecurityTab({ t }) {
           />
           <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
             {t('admin.security.allowRegisterHelp')}
+          </Typography>
+          <FormControlLabel
+            sx={{ mt: 1 }}
+            control={<Switch checked={form.block_disposable_email} onChange={setCheck('block_disposable_email')} />}
+            label={t('admin.security.blockDisposableEmail')}
+          />
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+            {t('admin.security.blockDisposableEmailHelp')}
           </Typography>
         </Box>
 
