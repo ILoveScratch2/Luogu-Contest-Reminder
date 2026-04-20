@@ -1,6 +1,7 @@
 import smtplib
 import ssl
 import time
+import mistune
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
@@ -260,6 +261,7 @@ def send_contest_reminder(
 
         body_section = ""
         if include_body and desc:
+            desc_html = mistune.html(desc)
             body_section = f"""
             <details style="margin-top:12px;">
               <summary style="cursor:pointer;color:{primary};font-weight:600;font-size:14px;">
@@ -268,7 +270,7 @@ def send_contest_reminder(
               <div style="margin-top:8px;padding:12px;background:#fafafa;
                           border-radius:6px;font-size:13px;color:#555;
                           line-height:1.6;">
-                {desc}
+                {desc_html}
               </div>
             </details>"""
 
