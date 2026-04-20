@@ -61,30 +61,17 @@ jobs:
         working-directory: backend
         run: pip install -r requirements.txt pyinstaller
 
+      - name: Generate platform icon
+        run: python build_icons.py
+
       - name: Build with PyInstaller
-        working-directory: backend
-        shell: bash
-        run: |
-          pyinstaller \
-            --onefile \
-            --name luogu-contest-reminder-${{ matrix.platform }} \
-            --collect-all uvicorn \
-            --collect-all starlette \
-            --collect-all fastapi \
-            --add-data "static:static" \
-            --hidden-import sqlalchemy.dialects.sqlite \
-            --hidden-import email_validator \
-            --hidden-import jose \
-            --hidden-import jose.backends \
-            --hidden-import passlib \
-            --hidden-import multipart \
-            main.py
+        run: pyinstaller main.spec
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: luogu-contest-reminder-${{ matrix.platform }}
-          path: backend/dist/
+          path: dist/
           retention-days: 7
 
   upload-release-assets:
@@ -104,6 +91,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            luogu-contest-reminder-linux/luogu-contest-reminder-linux
-            luogu-contest-reminder-windows/luogu-contest-reminder-windows.exe
-            luogu-contest-reminder-macos/luogu-contest-reminder-macos
+            luogu-contest-reminder-linux/luogu-contest-reminder
+            luogu-contest-reminder-windows/luogu-contest-reminder.exe
+            luogu-contest-reminder-macos/luogu-contest-reminder
