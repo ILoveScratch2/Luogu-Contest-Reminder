@@ -970,7 +970,19 @@ else:
     _base_dir = os.path.dirname(os.path.abspath(__file__))
 _static_dir = os.path.join(_base_dir, "static")
 if os.path.isdir(_static_dir):
-    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
+    from starlette.exceptions import HTTPException as _StarletteHTTPException
+
+    class _SPAStaticFiles(StaticFiles):
+        """Serve index.html for any path not matched by a real file (SPA fallback)."""
+        async def get_response(self, path: str, scope):
+            try:
+                return await super().get_response(path, scope)
+            except (_StarletteHTTPException, HTTPException) as exc:
+                if exc.status_code == 404:
+                    return await super().get_response("index.html", scope)
+                raise
+
+    app.mount("/", _SPAStaticFiles(directory=_static_dir, html=True), name="static")
 
 # entry
 if __name__ == "__main__":
