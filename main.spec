@@ -19,27 +19,36 @@ elif sys.platform == "darwin":
 else:
     _icon = os.path.join(_base, "notification.png")
 
+# ── collect_all helper (equiv. to --collect-all) ─────────────────────────────
+from PyInstaller.utils.hooks import collect_all  # noqa: F821
+
+def _collect(*packages):
+    datas, binaries, hiddenimports = [], [], []
+    for pkg in packages:
+        d, b, h = collect_all(pkg)
+        datas += d; binaries += b; hiddenimports += h
+    return datas, binaries, hiddenimports
+
+_extra_datas, _extra_binaries, _extra_hidden = _collect("uvicorn", "starlette", "fastapi")
+
 # ── Analysis ──────────────────────────────────────────────────────────────────
 a = Analysis(  # noqa: F821
     [os.path.join(_base, "backend", "main.py")],
     pathex=[os.path.join(_base, "backend")],
-    binaries=[],
+    binaries=_extra_binaries,
     datas=[
+        (os.path.join(_base, "backend", "static"), "static"),
         (os.path.join(_base, "notification.png"), "."),
+        *_extra_datas,
     ],
     hiddenimports=[
-        "uvicorn.logging",
-        "uvicorn.loops",
-        "uvicorn.loops.auto",
-        "uvicorn.protocols",
-        "uvicorn.protocols.http",
-        "uvicorn.protocols.http.auto",
-        "uvicorn.protocols.websockets",
-        "uvicorn.protocols.websockets.auto",
-        "uvicorn.lifespan",
-        "uvicorn.lifespan.on",
-        "email.mime.text",
-        "email.mime.multipart",
+        "sqlalchemy.dialects.sqlite",
+        "email_validator",
+        "jose",
+        "jose.backends",
+        "passlib",
+        "multipart",
+        *_extra_hidden,
     ],
     hookspath=[],
     hooksconfig={},
