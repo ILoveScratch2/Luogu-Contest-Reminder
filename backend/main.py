@@ -312,6 +312,7 @@ class SiteConfigRequest(BaseModel):
     turnstile_secret_key: Optional[str] = None  # None = keep existing
     session_expire_days: Optional[int] = None
     block_disposable_email: Optional[bool] = None
+    reminder_advance_days: Optional[int] = None
 
 
 class ChangePasswordRequest(BaseModel):
@@ -892,6 +893,7 @@ def get_site_config(db: Session = Depends(get_db)):
             "captcha_on_register": False, "captcha_on_login": False,
             "captcha_on_change_email": False, "turnstile_site_key": "",
             "session_expire_days": 7, "block_disposable_email": False,
+            "reminder_advance_days": 1,
         }
     return {
         "site_title": cfg.site_title,
@@ -906,6 +908,7 @@ def get_site_config(db: Session = Depends(get_db)):
         "turnstile_site_key": getattr(cfg, "turnstile_site_key", ""),
         "session_expire_days": getattr(cfg, "session_expire_days", 7),
         "block_disposable_email": getattr(cfg, "block_disposable_email", False),
+        "reminder_advance_days": getattr(cfg, "reminder_advance_days", 1),
     }
 
 
@@ -929,6 +932,8 @@ def update_site_config(
         raise HTTPException(status_code=400, detail="Invalid color format, expected #rrggbb")
     if req.contest_cache_ttl is not None and req.contest_cache_ttl < 0:
         raise HTTPException(status_code=400, detail="Cache TTL must be >= 0")
+    if req.reminder_advance_days is not None and req.reminder_advance_days < 1:
+        raise HTTPException(status_code=400, detail="reminder_advance_days must be >= 1")
     if req.captcha_type is not None and req.captcha_type not in ("none", "builtin", "turnstile"):
         raise HTTPException(status_code=400, detail="Invalid captcha_type")
     if req.session_expire_days is not None and req.session_expire_days < 1:
@@ -952,6 +957,7 @@ def update_site_config(
     if req.turnstile_secret_key is not None: cfg.turnstile_secret_key = req.turnstile_secret_key
     if req.session_expire_days is not None: cfg.session_expire_days = req.session_expire_days
     if req.block_disposable_email is not None: cfg.block_disposable_email = req.block_disposable_email
+    if req.reminder_advance_days is not None: cfg.reminder_advance_days = req.reminder_advance_days
     cfg.updated_at = datetime.datetime.utcnow()
 
     db.commit()

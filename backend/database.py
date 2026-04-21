@@ -77,6 +77,7 @@ class SiteConfig(Base):
     turnstile_secret_key = Column(String, default="", nullable=False)
     session_expire_days = Column(Integer, default=7, nullable=False)
     block_disposable_email = Column(Boolean, default=False, nullable=False)
+    reminder_advance_days = Column(Integer, default=1, nullable=False)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 

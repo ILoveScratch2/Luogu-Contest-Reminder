@@ -728,6 +728,7 @@ function SiteConfigTab({ t }) {
     primary_color: '#1976d2',
     favicon_url: '',
     contest_cache_ttl: 5,
+    reminder_advance_days: 1,
   })
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -738,7 +739,7 @@ function SiteConfigTab({ t }) {
   useEffect(() => {
     getAdminSiteConfig()
       .then(({ data }) => {
-        if (data) setForm({ site_title: data.site_title || '', primary_color: data.primary_color || '#1976d2', favicon_url: data.favicon_url || '', contest_cache_ttl: data.contest_cache_ttl ?? 5 })
+        if (data) setForm({ site_title: data.site_title || '', primary_color: data.primary_color || '#1976d2', favicon_url: data.favicon_url || '', contest_cache_ttl: data.contest_cache_ttl ?? 5, reminder_advance_days: data.reminder_advance_days ?? 1 })
         setLoaded(true)
       })
       .catch(() => setLoaded(true))
@@ -805,6 +806,17 @@ function SiteConfigTab({ t }) {
           helperText={t('admin.site.contestCacheTtlHelp')}
           type="number"
           inputProps={{ min: 0 }}
+        />
+        <TextField
+          label={t('admin.site.reminderAdvanceDays')}
+          value={form.reminder_advance_days}
+          onChange={(e) => {
+            const v = parseInt(e.target.value, 10)
+            setForm((f) => ({ ...f, reminder_advance_days: isNaN(v) ? 1 : Math.max(1, v) }))
+          }}
+          helperText={t('admin.site.reminderAdvanceDaysHelp')}
+          type="number"
+          inputProps={{ min: 1 }}
         />
         <Box>
           <Button variant="contained" onClick={handleSave} disabled={saving}>

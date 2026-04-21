@@ -15,7 +15,9 @@ def run_reminder_job():
     try:
         site_cfg = db.query(SiteConfig).first()
         ttl = site_cfg.contest_cache_ttl if site_cfg and site_cfg.contest_cache_ttl is not None else 5
-        contests = get_upcoming_contests(24, ttl)
+        advance_days = site_cfg.reminder_advance_days if site_cfg and site_cfg.reminder_advance_days is not None else 1
+        advance_hours = max(1, advance_days) * 24
+        contests = get_upcoming_contests(advance_hours, ttl)
         if not contests:
             print("[scheduler] No upcoming contests found.")
             return

@@ -161,6 +161,8 @@
       "faviconUrlHelp": "URL for the page icon (leave blank to use default)",
       "contestCacheTtl": "Contest List Cache Duration (minutes)",
       "contestCacheTtlHelp": "0 = no cache (always fetch from Luogu API); N = cache results for N minutes",
+      "reminderAdvanceDays": "Reminder Advance Days",
+      "reminderAdvanceDaysHelp": "Send email reminders when a contest starts within N days. Default is 1 (contest starts today).",
       "save": "Save Settings",
       "saved": "Site settings saved",
       "preview": "Color Preview"
