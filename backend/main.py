@@ -1008,8 +1008,14 @@ if os.path.isdir(_static_dir):
 
 # entry
 if __name__ == "__main__":
+    import argparse
     import getpass
     import uvicorn
+
+    parser = argparse.ArgumentParser(description="Luogu Contest Reminder")
+    parser.add_argument("--host", default="0.0.0.0", help="Bind host (default: 0.0.0.0)")
+    parser.add_argument("--port", type=int, default=8000, help="Bind port (default: 8000)")
+    args = parser.parse_args()
 
     init_db()
 
@@ -1042,4 +1048,4 @@ if __name__ == "__main__":
     finally:
         db.close()
 
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run(app, host=args.host, port=args.port, reload=False)
