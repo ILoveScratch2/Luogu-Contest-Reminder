@@ -72,7 +72,7 @@ def run_reminder_job():
             batch_users_map = {u.email: u for u in group_data["users"]}
             for batch in batches:
                 success = send_contest_reminder(
-                    db, batch, group_data["contests"], group_data["include_body"]
+                    db, batch, group_data["contests"], group_data["include_body"], advance_hours
                 )
                 if success:
                     for email in batch:

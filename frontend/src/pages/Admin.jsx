@@ -586,7 +586,7 @@ const TEMPLATE_PLACEHOLDERS = {
   },
   reminder: {
     subject: ['{{count}}'],
-    body: ['{{count}}', '{{cards_html}}', '{{primary_color}}', '{{dark_color}}', '{{site_title}}'],
+    body: ['{{count}}', '{{cards_html}}', '{{advance_hours}}', '{{primary_color}}', '{{dark_color}}', '{{site_title}}'],
   },
 }
 

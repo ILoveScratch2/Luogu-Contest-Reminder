@@ -105,7 +105,7 @@ DEFAULT_REMINDER_HTML = """\
       <tr>
         <td style="padding:24px 20px 8px;">
           <p style="color:#333;font-size:15px;margin:0 0 20px;">
-            以下 <strong>{{count}}</strong> 场比赛将在未来 24 小时内开始：
+            以下 <strong>{{count}}</strong> 场比赛将在未来 {{advance_hours}} 小时内开始：
           </p>
           {{cards_html}}
         </td>
@@ -235,6 +235,7 @@ def send_contest_reminder(
     to_emails: Union[str, List[str]],
     contests: list,
     include_body: bool = False,
+    advance_hours: int = 24,
 ) -> bool:
     config = _get_config(db)
     if not config:
@@ -306,6 +307,7 @@ def send_contest_reminder(
         "primary_color": primary,
         "dark_color": dark,
         "site_title": site_title,
+        "advance_hours": advance_hours,
     })
     return _send(config, to_emails, subject, html)
 

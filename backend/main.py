@@ -987,7 +987,10 @@ def about():
 def upcoming_contests(current: User = Depends(get_current_user), db: Session = Depends(get_db)):
     cfg = db.query(SiteConfig).first()
     ttl = cfg.contest_cache_ttl if cfg and cfg.contest_cache_ttl is not None else 5
-    return get_upcoming_contests(24, ttl) or []
+    advance_days = getattr(cfg, "reminder_advance_days", 1) if cfg else 1
+    advance_hours = max(1, advance_days) * 24
+    contests = get_upcoming_contests(advance_hours, ttl) or []
+    return {"contests": contests, "advance_hours": advance_hours}
 
 
 # Static files (SPA frontend)

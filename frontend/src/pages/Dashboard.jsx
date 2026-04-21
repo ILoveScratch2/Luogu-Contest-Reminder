@@ -71,6 +71,7 @@ export default function Dashboard() {
     send_contest_body: user?.send_contest_body ?? false,
   })
   const [contests, setContests] = useState([])
+  const [advanceHours, setAdvanceHours] = useState(24)
   const [loadingContests, setLoadingContests] = useState(true)
   const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' })
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -116,7 +117,10 @@ export default function Dashboard() {
       .catch(() => {})
 
     getUpcomingContests()
-      .then(({ data }) => setContests(data))
+      .then(({ data }) => {
+        setContests(data.contests ?? data)
+        setAdvanceHours(data.advance_hours ?? 24)
+      })
       .catch(() => setContests([]))
       .finally(() => setLoadingContests(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -336,7 +340,7 @@ export default function Dashboard() {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                {t('dashboard.upcomingContests')}
+                {t('dashboard.upcomingContests', { hours: advanceHours })}
               </Typography>
               <Divider sx={{ mb: 2 }} />
 
@@ -346,7 +350,7 @@ export default function Dashboard() {
                 </Box>
               ) : contests.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-                  {t('dashboard.noContests')}
+                  {t('dashboard.noContests', { hours: advanceHours })}
                 </Typography>
               ) : (
                 <TableContainer>
