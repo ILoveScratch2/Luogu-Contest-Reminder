@@ -139,7 +139,7 @@
       "bccBatchSizeHelp": "Exceeding this splits into multiple BCC sends; 0 = no limit (all in one send)",
       "save": "Save Config",
       "test": "Test Connection",
-      "testSuccess": "✅ Connection successful",
+      "testSuccess": "Connection successful",
       "testFailed": "❌ Connection failed",
       "saved": "SMTP config saved",
       "notConfigured": "SMTP is not configured. Users cannot register until SMTP is set up."

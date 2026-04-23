@@ -139,7 +139,7 @@
       "bccBatchSizeHelp": "超过此数将拆成多批 BCC 发送；0 表示不限制（全部一次发送）",
       "save": "保存配置",
       "test": "测试连接",
-      "testSuccess": "✅ 连接测试成功",
+      "testSuccess": "连接测试成功",
       "testFailed": "❌ 连接测试失败",
       "saved": "SMTP 配置已保存",
       "notConfigured": "SMTP 尚未配置，用户注册需要先配置 SMTP"
