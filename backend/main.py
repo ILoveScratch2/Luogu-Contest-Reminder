@@ -38,7 +38,7 @@ from scheduler import run_reminder_job, start_scheduler, stop_scheduler, reload_
 # ──────────────────────────────────────────────────────────────
 # Secret key (generated once, persisted to file)
 # ──────────────────────────────────────────────────────────────
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 _KEY_FILE = "secret.key"
 if os.path.exists(_KEY_FILE):
     with open(_KEY_FILE, "r") as _f:
